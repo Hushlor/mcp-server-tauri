@@ -33,7 +33,23 @@ async function startGlobalTestApp(): Promise<void> {
          return;
       }
 
-      let pluginReady = false;
+      let pluginReady = false,
+          startupSettled = false;
+
+      const startupTimer = setTimeout(() => {
+         if (!startupSettled) {
+            startupSettled = true;
+            reject(new Error(`Tauri app failed to start within ${STARTUP_TIMEOUT_MS / 1000}s timeout`));
+         }
+      }, STARTUP_TIMEOUT_MS);
+
+      const failStartup = (error: Error): void => {
+         if (!startupSettled) {
+            startupSettled = true;
+            clearTimeout(startupTimer);
+            reject(error);
+         }
+      };
 
       // The MCP bridge plugin only initializes after Tauri loads the webview,
       // which only happens once Vite (beforeDevCommand) is reachable. Treating
@@ -57,6 +73,8 @@ async function startGlobalTestApp(): Promise<void> {
                console.log('✓ MCP Bridge plugin ready');
             }
             pluginReady = true;
+            startupSettled = true;
+            clearTimeout(startupTimer);
             console.log('✅ Global test environment ready!');
             resolve();
          }
@@ -84,14 +102,14 @@ async function startGlobalTestApp(): Promise<void> {
          }
 
          console.error('Failed to start Tauri process:', error);
-         reject(error);
+         failStartup(error);
       });
 
-      setTimeout(() => {
+      tauriProcess.on('exit', (code, signal) => {
          if (!pluginReady) {
-            reject(new Error(`Tauri app failed to start within ${STARTUP_TIMEOUT_MS / 1000}s timeout`));
+            failStartup(new Error(`Tauri app exited before MCP bridge was ready (code ${code ?? 'null'}, signal ${signal ?? 'none'})`));
          }
-      }, STARTUP_TIMEOUT_MS);
+      });
    });
 }
 

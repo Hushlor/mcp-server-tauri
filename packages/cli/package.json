@@ -1,6 +1,6 @@
 {
    "name": "@hypothesi/tauri-mcp-cli",
-   "version": "0.11.2",
+   "version": "0.12.0",
    "description": "CLI wrapper for calling the Tauri MCP server tools directly from the terminal",
    "type": "module",
    "main": "./dist/index.js",
@@ -13,8 +13,8 @@
       "build": "tsc && chmod +x dist/index.js",
       "test": "vitest run",
       "dev": "tsc --watch",
-      "skills:validate": "intent validate skills/",
-      "skills:stale": "cd ../.. && npx @tanstack/intent stale",
+      "skills:validate": "node bin/intent.js list",
+      "skills:stale": "node bin/intent.js list",
       "prepublishOnly": "npm run build && npm run skills:validate"
    },
    "repository": {
@@ -46,7 +46,7 @@
       "tanstack-intent"
    ],
    "dependencies": {
-      "@hypothesi/tauri-mcp-server": "0.11.2",
+      "@hypothesi/tauri-mcp-server": "0.12.0",
       "commander": "14.0.2",
       "mcporter": "0.7.3"
    },

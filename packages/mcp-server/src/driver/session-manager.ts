@@ -42,6 +42,7 @@ export const ManageDriverSessionSchema = z.object({
 export interface SessionInfo {
    name: string;
    identifier: string | null;
+
    /**
     * Working directory of the host Tauri process at session-start time.
     * `null` when the plugin is too old to advertise it (pre-v0.11) or
@@ -141,11 +142,13 @@ export function findSessionByCwd(
       return null;
    }
 
-   let best: SessionInfo | null = null;
-   let bestScore = -1;
+   let best: SessionInfo | null = null,
+       bestScore = -1;
 
    for (const session of sessions) {
-      if (!session.cwd) continue;
+      if (!session.cwd) {
+         continue;
+      }
 
       let score = -1;
 
@@ -378,6 +381,10 @@ async function handleStartAction(host?: string, port?: number): Promise<string> 
       return `Session start failed - no Tauri app found at localhost or ${configuredHost}:${configuredPort}`;
    }
 
+   if (activeSessions.has(connectedSession.port)) {
+      return `Already connected to app on port ${connectedSession.port}`;
+   }
+
    const client = new PluginClient(connectedSession.host, connectedSession.port);
 
    await client.connect();
@@ -492,7 +499,7 @@ async function fetchAppMetadata(
          identifier: state.app?.identifier ?? null,
          cwd: typeof state.cwd === 'string' && state.cwd.length > 0 ? state.cwd : null,
       };
-   } catch {
+   } catch{
       return { identifier: null, cwd: null };
    }
 }

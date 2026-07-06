@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-05
+
+### Added
+- `resolveTargetApp` can route by current working directory when multiple apps are connected and no `appIdentifier` is passed.
+- Add `getCwdHint()` and the `MCP_BRIDGE_CWD` environment override for worktree-specific routing.
+- `driver_session` status output now includes each connected app's `cwd`.
+
+### Changed
+- Docs now point users to `aix add mcp` for setup instead of the older `install-mcp` flow.
+
+### Fixed
+- Device listing now times out SDK probes instead of waiting indefinitely when `adb` or `xcrun` hangs.
+- Starting a session after auto-discovery now reuses an already connected port instead of opening a duplicate connection.
+
 ## [0.11.2] - 2026-05-19
 
 ### Changed

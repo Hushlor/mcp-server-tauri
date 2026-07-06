@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-05
+
+### Changed
+- Update the bundled `@hypothesi/tauri-mcp-server` dependency to `0.12.0`.
+- Update Intent skill checks to use the current `intent list` command.
+
 ## [0.11.2] - 2026-05-19
 
 _No changes to this package._

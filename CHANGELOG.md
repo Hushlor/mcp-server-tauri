@@ -7,11 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-05
+
 ### Added
 - `tauri-plugin-mcp-bridge`: `get_backend_state` now includes the host process's current working directory (`cwd` field). Lets MCP clients disambiguate concurrent Tauri instances running from different worktrees or checkouts.
 - `tauri-mcp-server`: `resolveTargetApp` falls back to CWD-based routing when no `appIdentifier` is passed and multiple apps are connected, picking the session whose `cwd` best matches `MCP_BRIDGE_CWD` or `process.cwd()`. Removes the need to manually pass `appIdentifier` per-tool-call when working across multiple worktrees with their own MCP sessions.
 - `tauri-mcp-server`: new `getCwdHint()` config helper and `MCP_BRIDGE_CWD` env override.
 - `driver_session` status output now includes the `cwd` of each connected app.
+
+### Changed
+- Docs now point users to `aix add mcp` for setup instead of the older `install-mcp` flow.
+- `npm run standards` now lints local commits after `origin/main` instead of every commit after an old fixed baseline.
+
+### Fixed
+- `tauri-mcp-server`: device listing now times out SDK probes instead of waiting indefinitely when `adb` or `xcrun` hangs.
+- `tauri-mcp-server`: starting a session after auto-discovery now reuses an already connected port instead of opening a duplicate connection.
+- `tauri-plugin-mcp-bridge` no longer logs expected mid-handshake disconnects as errors.
 
 ## [0.11.2] - 2026-05-19
 

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.0] - 2026-07-05
+
+### Added
+- `get_backend_state` now returns the host process `cwd`, so MCP clients can tell apart apps running from different worktrees.
+
+### Fixed
+- Do not log expected mid-handshake disconnects as errors.
+
 ## [0.11.2] - 2026-05-19
 
 ### Fixed

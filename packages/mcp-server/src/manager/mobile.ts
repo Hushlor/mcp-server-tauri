@@ -3,9 +3,11 @@ import { execa } from 'execa';
 
 export const ListDevicesSchema = z.object({});
 
+const DEVICE_LIST_TIMEOUT_MS = 5000;
+
 async function getAndroidDevices(): Promise<string[]> {
    try {
-      const { stdout } = await execa('adb', [ 'devices', '-l' ]);
+      const { stdout } = await execa('adb', [ 'devices', '-l' ], { timeout: DEVICE_LIST_TIMEOUT_MS });
 
       return stdout
          .split('\n')
@@ -24,7 +26,11 @@ async function getIOSSimulators(): Promise<string[]> {
    }
 
    try {
-      const { stdout } = await execa('xcrun', [ 'simctl', 'list', 'devices', 'booted' ]);
+      const { stdout } = await execa(
+         'xcrun',
+         [ 'simctl', 'list', 'devices', 'booted' ],
+         { timeout: DEVICE_LIST_TIMEOUT_MS }
+      );
 
       return stdout
          .split('\n')

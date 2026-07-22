@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Node package builds no longer depend on Unix-only `cp` and `chmod` commands, allowing the server, CLI, and root workspace builds to run under native Windows shells.
+
 ## [0.12.0] - 2026-07-05
 
 ### Added

@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Replace Unix-only asset-copy and permission commands with cross-platform Node-based dist preparation.
+
 ## [0.12.0] - 2026-07-05
 
 ### Added

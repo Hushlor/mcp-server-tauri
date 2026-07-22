@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - `tauri-mcp-server`: keep bridge WebSockets alive with ping/pong heartbeats and reconnect stale cached sessions when `driver_session start` is called again.
+- Node package builds no longer depend on Unix-only `cp` and `chmod` commands, allowing the server, CLI, and root workspace builds to run under native Windows shells.
+
+- Node package builds no longer depend on Unix-only `cp` and `chmod` commands, allowing the server, CLI, and root workspace builds to run under native Windows shells.
 
 ## [0.12.0] - 2026-07-05
 

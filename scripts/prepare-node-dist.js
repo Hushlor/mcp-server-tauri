@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 /* eslint-disable no-undef */
 
 import { access, chmod, copyFile, mkdir, readdir } from 'fs/promises';

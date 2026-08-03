@@ -102,7 +102,12 @@ jobs:
               }
             }
 
-            const crateResponse = await fetch(`https://crates.io/api/v1/crates/tauri-plugin-hushlor-mcp-bridge/${version}`);
+            const crateResponse = await fetch(`https://crates.io/api/v1/crates/tauri-plugin-hushlor-mcp-bridge/${version}`, {
+              headers: {
+                Accept: 'application/json',
+                'User-Agent': 'Hushlor/mcp-server-tauri release verification (https://github.com/Hushlor/mcp-server-tauri)',
+              },
+            });
             if (!crateResponse.ok) {
               throw new Error(`tauri-plugin-hushlor-mcp-bridge@${version} must already exist on crates.io for the bootstrap release`);
             }

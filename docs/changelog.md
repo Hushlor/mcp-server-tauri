@@ -9,7 +9,7 @@ head:
 
 # Changelog
 
-All notable changes to this project are documented here. Releases are fetched dynamically from [GitHub Releases](https://github.com/hypothesi/mcp-server-tauri/releases).
+All notable changes to this project are documented here. Releases are fetched dynamically from [GitHub Releases](https://github.com/Hushlor/mcp-server-tauri/releases).
 
 <script setup>
 import { ref, onMounted } from 'vue';
@@ -25,8 +25,8 @@ const error = ref('');
 onMounted(async () => {
    // Fetch both in parallel
    const [releasesRes, changelogRes] = await Promise.all([
-      fetch('https://api.github.com/repos/hypothesi/mcp-server-tauri/releases').catch(() => null),
-      fetch('https://raw.githubusercontent.com/hypothesi/mcp-server-tauri/main/CHANGELOG.md').catch(() => null),
+      fetch('https://api.github.com/repos/Hushlor/mcp-server-tauri/releases').catch(() => null),
+      fetch('https://raw.githubusercontent.com/Hushlor/mcp-server-tauri/main/CHANGELOG.md').catch(() => null),
    ]);
 
    // Parse releases
@@ -81,10 +81,10 @@ function renderMarkdown(text) {
 <div class="releases-container">
    <div v-if="loading" class="loading">Loading releases...</div>
    <div v-else-if="error" class="error">
-      {{ error }}. <a href="https://github.com/hypothesi/mcp-server-tauri/releases" target="_blank" rel="noopener">View on GitHub →</a>
+      {{ error }}. <a href="https://github.com/Hushlor/mcp-server-tauri/releases" target="_blank" rel="noopener">View on GitHub →</a>
    </div>
    <div v-else-if="releases.length === 0" class="empty">
-      No releases found. <a href="https://github.com/hypothesi/mcp-server-tauri/releases" target="_blank" rel="noopener">View on GitHub →</a>
+      No releases found. <a href="https://github.com/Hushlor/mcp-server-tauri/releases" target="_blank" rel="noopener">View on GitHub →</a>
    </div>
    <div v-else class="releases-list">
       <div v-for="release in releases" :key="release.id" class="release-card">

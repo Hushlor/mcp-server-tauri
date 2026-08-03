@@ -1,6 +1,6 @@
 {
-  "name": "@hypothesi/tauri-plugin-mcp-bridge",
-  "version": "0.12.0",
+  "name": "@hushlor/tauri-plugin-mcp-bridge",
+  "version": "0.13.0",
   "description": "A Tauri plugin that exposes an MCP server interface via WebSockets.",
   "type": "module",
   "main": "./dist-js/index.js",
@@ -25,10 +25,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/hypothesi/mcp-server-tauri.git",
+    "url": "https://github.com/Hushlor/mcp-server-tauri.git",
     "directory": "packages/tauri-plugin-mcp-bridge"
   },
-  "author": "hypothesi",
+  "author": "Hushlor",
   "license": "MIT",
   "keywords": [
     "tauri",

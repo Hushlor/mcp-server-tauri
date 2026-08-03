@@ -1,5 +1,5 @@
 // MCP Bridge: Enables eval() contexts to communicate with Tauri IPC
-// This bridge is automatically injected by the mcp-bridge plugin
+// This bridge is automatically injected by the hushlor-mcp-bridge plugin
 // It forwards DOM events from eval() contexts to Tauri IPC and back
 
 (function() {
@@ -142,7 +142,7 @@
                return;
             }
 
-            reportPromise = originalInvoke('plugin:mcp-bridge|report_ipc_event', {
+            reportPromise = originalInvoke('plugin:hushlor-mcp-bridge|report_ipc_event', {
                command: cmd,
                args: args || {},
                result: result,
@@ -655,7 +655,7 @@
       // Use Tauri's invoke to request script re-injection.
       // The plugin responds by calling __MCP_INJECT_SCRIPTS__ with registered scripts.
       if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {
-         window.__TAURI__.core.invoke('plugin:mcp-bridge|request_script_injection')
+         window.__TAURI__.core.invoke('plugin:hushlor-mcp-bridge|request_script_injection')
             .catch(function(err) {
                // This command may not exist in older versions, which is fine
                bridgeLogger.warn('Script injection request:', err.message || 'not available');

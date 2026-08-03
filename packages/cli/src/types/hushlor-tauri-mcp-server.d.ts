@@ -1,4 +1,4 @@
-declare module '@hypothesi/tauri-mcp-server' {
+declare module '@hushlor/tauri-mcp-server' {
    export interface CliToolDefinition {
       name: string;
       description: string;

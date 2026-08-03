@@ -59,7 +59,7 @@ jobs:
       - name: Run Rust tests
         run: |
           cd packages/tauri-plugin-mcp-bridge
-          cargo test --all-features
+          cargo test --locked --all-features
 
       - name: Check Rust formatting
         run: |
@@ -69,10 +69,10 @@ jobs:
       - name: Run Clippy
         run: |
           cd packages/tauri-plugin-mcp-bridge
-          cargo clippy -- -D warnings
+          cargo clippy --locked -- -D warnings
 
   test-server:
-    name: Test @hypothesi/tauri-mcp-server
+    name: Test @hushlor/tauri-mcp-server
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -89,13 +89,13 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - name: Install server dependencies only
-        run: npm ci --workspace=@hypothesi/tauri-mcp-server --include-workspace-root
+        run: npm ci --workspace=@hushlor/tauri-mcp-server --include-workspace-root
 
       - name: Build server
-        run: npm run build --workspace=@hypothesi/tauri-mcp-server
+        run: npm run build --workspace=@hushlor/tauri-mcp-server
 
       - name: Run unit tests
-        run: npm run test:unit --workspace=@hypothesi/tauri-mcp-server
+        run: npm run test:unit --workspace=@hushlor/tauri-mcp-server
 
       - name: Type check
         run: npx tsc --noEmit --project packages/mcp-server/tsconfig.json
@@ -161,7 +161,7 @@ jobs:
           args: ${{ matrix.args }}
 
   test-cli-build:
-    name: Build @hypothesi/tauri-mcp-cli (${{ matrix.os }})
+    name: Build @hushlor/tauri-mcp-cli (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -178,13 +178,42 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --workspace=@hypothesi/tauri-mcp-cli --include-workspace-root
+        run: npm ci --workspace=@hushlor/tauri-mcp-cli --include-workspace-root
 
       - name: Build CLI dependencies
-        run: npm run build --workspace=@hypothesi/tauri-mcp-server
+        run: npm run build --workspace=@hushlor/tauri-mcp-server
 
       - name: Build CLI
-        run: npm run build --workspace=@hypothesi/tauri-mcp-cli
+        run: npm run build --workspace=@hushlor/tauri-mcp-cli
+
+  test-cli-integration:
+    name: Test @hushlor/tauri-mcp-cli integration
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build server
+        run: npm run build --workspace=@hushlor/tauri-mcp-server
+
+      - name: Build CLI
+        run: npm run build --workspace=@hushlor/tauri-mcp-cli
+
+      - name: Run CLI integration tests
+        run: npm run test:cli
 
   lint-and-standards:
     name: Lint and Standards Check
@@ -221,17 +250,17 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
-        run: npm ci --workspace=@hypothesi/tauri-mcp-cli --include-workspace-root
+        run: npm ci --workspace=@hushlor/tauri-mcp-cli --include-workspace-root
 
       - name: Validate skill files
-        run: npm run skills:validate --workspace=@hypothesi/tauri-mcp-cli
+        run: npm run skills:validate --workspace=@hushlor/tauri-mcp-cli
 
       - name: Check for stale skills
-        run: npm run skills:stale --workspace=@hypothesi/tauri-mcp-cli
+        run: npm run skills:stale --workspace=@hushlor/tauri-mcp-cli
 
   all-tests-pass:
     name: All Tests Pass
-    needs: [test-plugin, test-server, test-app, test-cli-build, lint-and-standards, validate-cli-skills]
+    needs: [test-plugin, test-server, test-app, test-cli-build, test-cli-integration, lint-and-standards, validate-cli-skills]
     runs-on: ubuntu-latest
     steps:
       - name: Success

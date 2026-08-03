@@ -2,8 +2,14 @@
 
 ## [Unreleased]
 
-### Fixed
-- Replace the Unix-only executable-permission command with cross-platform Node-based dist preparation.
+_No unreleased changes._
+
+## [0.13.0] - 2026-08-03
+
+### Changed
+- Rebranded the CLI as `@hushlor/tauri-mcp-cli` and pinned its `@hushlor/tauri-mcp-server` dependency to the coordinated `0.13.0` release.
+- Updated committed Claude Code, Gemini, and Agent Skill metadata for the Hushlor downstream.
+- Integrated the cross-platform package build fix from PR #44.
 
 ## [0.12.0] - 2026-07-05
 

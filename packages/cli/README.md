@@ -1,17 +1,19 @@
-# @hypothesi/tauri-mcp-cli
+# @hushlor/tauri-mcp-cli
 
 CLI wrapper for calling the Tauri MCP server tools directly from the terminal.
+
+> **Independent downstream fork:** Hushlor maintains this package independently of [hypothesi/mcp-server-tauri](https://github.com/hypothesi/mcp-server-tauri), while preserving the upstream MIT license and attribution. See the [Hushlor repository](https://github.com/Hushlor/mcp-server-tauri) for current source and releases.
 
 ## Install
 
 ```bash
-npm install -g @hypothesi/tauri-mcp-cli
+npm install -g @hushlor/tauri-mcp-cli
 ```
 
 Or run without a permanent install:
 
 ```bash
-npx @hypothesi/tauri-mcp-cli <command>
+npx @hushlor/tauri-mcp-cli <command>
 ```
 
 ## Session Lifecycle
@@ -96,4 +98,8 @@ Bundled skill:
 
 - `tauri-mcp-cli` — one skill covering session lifecycle, UI automation, screenshots and inspection, IPC debugging, and mobile or remote device workflows
 
-See the [Agent Skills guide](../../docs/guides/agent-skills.md) for installation options and the full coverage summary.
+See the [Agent Skills guide](https://hushlor.github.io/mcp-server-tauri/guides/agent-skills) for installation options and the full coverage summary.
+
+## License
+
+MIT © Hushlor. The package includes [LICENSE](./LICENSE); original upstream copyright and attribution remain preserved.

@@ -95,10 +95,13 @@ This monorepo uses a **single version** across all packages. All packages share 
 **Version files (all must have the same version):**
 
 - `packages/mcp-server/package.json` - `version` field
-- `packages/cli/package.json` - `version` field and `@hypothesi/tauri-mcp-server` dependency version
+- `packages/cli/package.json` - `version` field and `@hushlor/tauri-mcp-server` dependency version
 - `packages/cli/.claude-plugin/plugin.json` - `version` field
+- `.claude-plugin/marketplace.json` - `metadata.version` field
 - `gemini-extension.json` - `version` field
+- `packages/cli/gemini-extension.json` - copied `version` and metadata fields
 - `packages/tauri-plugin-mcp-bridge/package.json` - `version` field
+- `packages/tauri-plugin-mcp-bridge/guest-js/package.json` - package name and `version` fields
 - `packages/tauri-plugin-mcp-bridge/Cargo.toml` - `version` field
 
 **Changelog files (all four must be updated):**
@@ -111,8 +114,8 @@ This monorepo uses a **single version** across all packages. All packages share 
 **Lock files (updated automatically but must be committed):**
 
 - `package-lock.json` - Updated by `npm install`
-- `packages/tauri-plugin-mcp-bridge/Cargo.lock` - Updated by `cargo update`
-- `packages/test-app/src-tauri/Cargo.lock` - Updated by `cargo update`
+- `packages/tauri-plugin-mcp-bridge/Cargo.lock` - Updated with a minimal root package/version change; do not refresh unrelated transitive dependencies
+- `packages/test-app/src-tauri/Cargo.lock` - Updated with the matching minimal root package/dependency change; do not refresh unrelated transitive dependencies
 
 ### Release Checklist
 
@@ -125,30 +128,43 @@ This monorepo uses a **single version** across all packages. All packages share 
 4. **Update version in package.json files** using npm (without git tag):
 
    ```bash
-   npm version <version> --no-git-tag-version -w @hypothesi/tauri-mcp-server -w @hypothesi/tauri-mcp-cli -w @hypothesi/tauri-plugin-mcp-bridge
+   npm version <version> --no-git-tag-version -w @hushlor/tauri-mcp-server -w @hushlor/tauri-mcp-cli -w @hushlor/tauri-plugin-mcp-bridge
    ```
 
 5. **Update version-coupled metadata** manually to match:
-   - `packages/cli/package.json` - update the `@hypothesi/tauri-mcp-server` dependency version
+   - `packages/cli/package.json` - update the `@hushlor/tauri-mcp-server` dependency version
    - `packages/cli/.claude-plugin/plugin.json`
+   - `.claude-plugin/marketplace.json`
    - `gemini-extension.json`
+   - `packages/cli/gemini-extension.json`
    - `packages/tauri-plugin-mcp-bridge/Cargo.toml`
+   - `packages/tauri-plugin-mcp-bridge/guest-js/package.json`
 6. **Update lock files**:
 
    ```bash
    npm install
-   cargo update --package tauri-plugin-mcp-bridge  # in packages/tauri-plugin-mcp-bridge/
-   cargo update --package tauri-plugin-mcp-bridge  # in packages/test-app/src-tauri/
+   # Do not run cargo update: it can silently upgrade unrelated transitive crates.
+   # Edit only the root package name/version and the exact path dependency in both
+   # Cargo.lock files, then verify with locked checks:
+   cargo check --locked --manifest-path packages/tauri-plugin-mcp-bridge/Cargo.toml --all-features
+   cargo check --locked --manifest-path packages/test-app/src-tauri/Cargo.toml
    ```
+
+   Review `git diff -- packages/tauri-plugin-mcp-bridge/Cargo.lock packages/test-app/src-tauri/Cargo.lock` and reject any dependency or version changes unrelated to the coordinated release.
 
 7. **Verify versions** in manifests and lock files match the new version:
 
    ```bash
    grep -n '"version"' packages/cli/.claude-plugin/plugin.json gemini-extension.json
-   grep -n '"@hypothesi/tauri-mcp-server"' packages/cli/package.json
-   grep -A2 '"@hypothesi/tauri-mcp-server"' package-lock.json | head -3
-   grep -A2 '"@hypothesi/tauri-mcp-cli"' package-lock.json | head -3
-   grep -A2 '"@hypothesi/tauri-plugin-mcp-bridge"' package-lock.json | head -3
+   grep -n '"version"' packages/cli/gemini-extension.json
+   grep -n '"version"' .claude-plugin/marketplace.json packages/tauri-plugin-mcp-bridge/guest-js/package.json
+   grep -n '"@hushlor/tauri-mcp-server"' packages/cli/package.json
+   grep -A2 '"@hushlor/tauri-mcp-server"' package-lock.json | head -3
+   grep -A2 '"@hushlor/tauri-mcp-cli"' package-lock.json | head -3
+   grep -A2 '"@hushlor/tauri-plugin-mcp-bridge"' package-lock.json | head -3
+   node --input-type=module -e "import fs from 'node:fs'; const root=JSON.parse(fs.readFileSync('gemini-extension.json')); const cli=JSON.parse(fs.readFileSync('packages/cli/gemini-extension.json')); if (JSON.stringify({...root, version:undefined}) !== JSON.stringify({...cli, version:undefined}) || cli.version !== root.version) throw new Error('CLI Gemini metadata diverges from root');"
+   node --input-type=module -e "import fs from 'node:fs'; if (fs.readFileSync('GEMINI.md','utf8') !== fs.readFileSync('packages/cli/GEMINI.md','utf8')) throw new Error('CLI GEMINI.md diverges from root');"
+   node --input-type=module -e "import fs from 'node:fs'; const v=JSON.parse(fs.readFileSync('packages/mcp-server/package.json')).version; const cli=JSON.parse(fs.readFileSync('packages/cli/.claude-plugin/plugin.json')); const market=JSON.parse(fs.readFileSync('.claude-plugin/marketplace.json')); const guest=JSON.parse(fs.readFileSync('packages/tauri-plugin-mcp-bridge/guest-js/package.json')); if (cli.version !== v || market.metadata?.version !== v || guest.version !== v || guest.name !== '@hushlor/tauri-plugin-mcp-bridge') throw new Error('Release metadata is not synchronized');"
    ```
 
 8. **Stage all changed files**:
@@ -156,20 +172,30 @@ This monorepo uses a **single version** across all packages. All packages share 
    - `packages/mcp-server/package.json`
    - `packages/cli/package.json`
    - `packages/cli/.claude-plugin/plugin.json`
+   - `packages/cli/gemini-extension.json`
+   - `packages/cli/GEMINI.md`
    - `gemini-extension.json`
+   - `.claude-plugin/marketplace.json`
    - `packages/tauri-plugin-mcp-bridge/package.json`
    - `packages/tauri-plugin-mcp-bridge/Cargo.toml`
+   - `packages/tauri-plugin-mcp-bridge/guest-js/package.json`
    - package-lock.json
    - Both Cargo.lock files
 9. **Commit**: `git commit -m "chore: version bump: v<version>"`
 10. **Create signed tag**: `git tag -s v<version> -m "Release v<version>"`
-11. **Push**: `git push && git push --tags`
+11. **Verify the Hushlor fork remote and push only it**:
+   ```bash
+   git remote get-url personal
+   git push personal main
+   git push personal "v<version>"
+   ```
+   Never use an implicit `origin` push from this checkout: `personal` must resolve to the Hushlor fork.
 
 ### Common Mistakes to Avoid
 
 - **Skipping changelog entries**: Every version must have an entry in all four changelogs
 - **Forgetting lock files**: Both `package-lock.json` and both `Cargo.lock` files must be updated
-- **Forgetting CLI metadata**: `packages/cli/.claude-plugin/plugin.json`, `gemini-extension.json`, and the CLI's pinned `@hypothesi/tauri-mcp-server` dependency must match the release version
+- **Forgetting CLI metadata**: `packages/cli/.claude-plugin/plugin.json`, `gemini-extension.json`, and the CLI's pinned `@hushlor/tauri-mcp-server` dependency must match the release version
 - **Version mismatch**: All version fields must match exactly
 - **Missing intermediate versions**: If changelogs are missing entries for previous versions, add them before creating the new release
 

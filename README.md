@@ -6,12 +6,12 @@
 
 **Give your AI assistant superpowers for Tauri development**
 
-[![npm version](https://img.shields.io/npm/v/@hypothesi/tauri-mcp-server?style=flat-square&color=0ea5e9)](https://www.npmjs.com/package/@hypothesi/tauri-mcp-server)
-[![crates.io](https://img.shields.io/crates/v/tauri-plugin-mcp-bridge?style=flat-square&color=e6522c)](https://crates.io/crates/tauri-plugin-mcp-bridge)
+[![npm version](https://img.shields.io/npm/v/@hushlor/tauri-mcp-server?style=flat-square&color=0ea5e9)](https://www.npmjs.com/package/@hushlor/tauri-mcp-server)
+[![crates.io](https://img.shields.io/crates/v/tauri-plugin-hushlor-mcp-bridge?style=flat-square&color=e6522c)](https://crates.io/crates/tauri-plugin-hushlor-mcp-bridge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-8b5cf6.svg?style=flat-square)](LICENSE)
 [![Tauri v2](https://img.shields.io/badge/Tauri-v2-FFC131?style=flat-square&logo=tauri&logoColor=white)](https://v2.tauri.app)
 
-[Documentation](https://hypothesi.github.io/mcp-server-tauri) · [Getting Started](#quick-start) · [Available Tools](#available-tools)
+[Documentation](https://hushlor.github.io/mcp-server-tauri/) · [Getting Started](#quick-start) · [Available Tools](#available-tools)
 
 </div>
 
@@ -32,6 +32,8 @@ A **Model Context Protocol (MCP) server** that enables AI assistants like Claude
 
 > _Disclaimer: This MCP was developed using agentic coding tools. It may contain bugs._
 
+> **Independent downstream fork:** This distribution is maintained by Hushlor and is released independently of the original [hypothesi/mcp-server-tauri](https://github.com/hypothesi/mcp-server-tauri) project. It preserves the upstream MIT license and attribution while allowing downstream features and releases without upstream approval.
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -46,7 +48,7 @@ A **Model Context Protocol (MCP) server** that enables AI assistants like Claude
 Use [aix](https://aix.a1st.dev/cli/add/#aix-add-mcp) to add the server to your AI assistant:
 
 ```bash
-npx -y @a1st/aix add mcp tauri --command 'npx @hypothesi/tauri-mcp-server' --user
+npx -y @a1st/aix add mcp tauri --command 'npx @hushlor/tauri-mcp-server' --user
 ```
 
 Supported clients: `claude-code`, `cursor`, `windsurf`, `vscode`, `cline`, `roo-cline`, `claude`, `zed`, `goose`, `warp`, `codex`
@@ -61,7 +63,7 @@ Supported clients: `claude-code`, `cursor`, `windsurf`, `vscode`, `cline`, `roo-
 If you want to call the tools directly from a terminal instead of from an MCP client:
 
 ```bash
-npm install -g @hypothesi/tauri-mcp-cli
+npm install -g @hushlor/tauri-mcp-cli
 tauri-mcp driver-session start --port 9223
 tauri-mcp webview-screenshot --file screenshot.png
 ```
@@ -85,7 +87,7 @@ That's it! The AI handles all the setup details while keeping you in control. �
 <details>
 <summary><strong>Manual Setup</strong></summary>
 
-If you prefer to set up manually, see the [Getting Started guide](https://hypothesi.github.io/mcp-server-tauri/guides/getting-started.html) or the [plugin documentation](./packages/tauri-plugin-mcp-bridge/README.md).
+If you prefer to set up manually, see the [Getting Started guide](https://hushlor.github.io/mcp-server-tauri/guides/getting-started.html) or the [plugin documentation](./packages/tauri-plugin-mcp-bridge/README.md).
 
 </details>
 
@@ -103,7 +105,7 @@ Just type the command in your AI assistant to start a guided workflow.
 
 ---
 
-## 🧰 Available Tools (21 total)
+## 🧰 Available Tools (22 total)
 
 <details>
 <summary><strong>Setup & Configuration</strong></summary>
@@ -208,7 +210,7 @@ Just type the command in your AI assistant to start a guided workflow.
 
 ```bash
 # Clone and install
-git clone https://github.com/hypothesi/mcp-server-tauri.git
+git clone https://github.com/Hushlor/mcp-server-tauri.git
 cd mcp-server-tauri
 npm install
 
@@ -219,7 +221,7 @@ npm run build
 npm test
 
 # Development mode
-npm run dev -w @hypothesi/tauri-mcp-server
+npm run dev -w @hushlor/tauri-mcp-server
 ```
 
 <details>
@@ -229,6 +231,7 @@ npm run dev -w @hypothesi/tauri-mcp-server
 mcp-server-tauri/
 ├── packages/
 │   ├── mcp-server/              # MCP server (TypeScript)
+│   ├── cli/                      # Published CLI wrapper
 │   ├── tauri-plugin-mcp-bridge/ # Tauri plugin (Rust + JS bindings)
 │   └── test-app/                # Test Tauri application
 ├── docs/                        # VitePress documentation
@@ -241,14 +244,11 @@ mcp-server-tauri/
 <summary><strong>Releasing</strong></summary>
 
 ```bash
-# Release plugin (Cargo + npm)
-npm run release:plugin patch
-
-# Release server (npm only)
-npm run release:server patch
+# Validate the coordinated bootstrap release locally (no publish/tag)
+node scripts/release-package.js 0.13.0 --dry-run
 ```
 
-See [specs/releasing.md](./specs/releasing.md) for details.
+Publishing packages or creating and pushing tags requires explicit authorization. See [specs/releasing.md](./specs/releasing.md) for the bootstrap and coordinated release procedure.
 
 </details>
 
@@ -256,7 +256,7 @@ See [specs/releasing.md](./specs/releasing.md) for details.
 
 ## 📚 Documentation
 
-- **[Full Documentation](https://hypothesi.github.io/mcp-server-tauri)** — Guides, API reference, and examples
+- **[Full Documentation](https://hushlor.github.io/mcp-server-tauri/)** — Guides, API reference, and examples
 - **[MCP Server Package](./packages/mcp-server/)** — Server implementation details
 - **[MCP Bridge Plugin](./packages/tauri-plugin-mcp-bridge/)** — Tauri plugin documentation
 
@@ -279,7 +279,7 @@ This project is tested with BrowserStack.
 
 ## 📄 License
 
-MIT © [hypothesi](https://github.com/hypothesi)
+MIT © Hushlor. Original upstream copyright and attribution are preserved in [LICENSE](./LICENSE); see [hypothesi/mcp-server-tauri](https://github.com/hypothesi/mcp-server-tauri) for provenance.
 
 ---
 

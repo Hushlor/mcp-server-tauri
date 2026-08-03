@@ -14,7 +14,7 @@ You can copy them as-is or adapt them to your project.
 
 Please:
 - Inspect my repo structure and Tauri config files.
-- Tell me what files I need to add or update to install `@hypothesi/tauri-plugin-mcp-bridge`.
+- Tell me what files I need to add or update to install `@hushlor/tauri-plugin-mcp-bridge`.
 - Update my Tauri config to register the plugin.
 - Add any required Rust code to `src-tauri` and explain where it goes.
 - Finish by telling me how to run the app so the MCP server can connect."

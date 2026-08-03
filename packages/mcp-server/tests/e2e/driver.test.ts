@@ -26,7 +26,7 @@ describe('Driver Module E2E (Real App)', () => {
       const config = await readFile(configPath, 'utf-8');
 
       expect(config).toContain('test-app');
-      expect(config).toContain('com.hypothesi.test-app');
+      expect(config).toContain('com.hushlor.tauri-mcp-test-app');
    }, TIMEOUT);
 
    it('should verify devtools feature is enabled', async () => {

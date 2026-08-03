@@ -9,7 +9,7 @@ head:
 
 # Agent Skills
 
-The `@hypothesi/tauri-mcp-cli` package ships one bundled **Agent Skill** — a portable
+The `@hushlor/tauri-mcp-cli` package ships one bundled **Agent Skill** — a portable
 instruction set that teaches AI coding agents how to use the Tauri MCP CLI correctly. The
 skill covers session lifecycle, UI automation, screenshots and inspection, IPC debugging,
 daemon recovery, and mobile workflows in one place. Skills work with **40+ agents**
@@ -22,13 +22,13 @@ is the easiest way to install:
 
 ```bash
 # Interactive — choose which skills and agents to target
-npx skills add hypothesi/mcp-server-tauri
+npx skills add Hushlor/mcp-server-tauri
 
 # Install the bundled skill for Claude Code, no prompts
-npx skills add hypothesi/mcp-server-tauri -a claude-code --all -y
+npx skills add Hushlor/mcp-server-tauri -a claude-code --all -y
 
 # Install to a specific agent globally (applies to every project)
-npx skills add hypothesi/mcp-server-tauri -g -a cursor --all -y
+npx skills add Hushlor/mcp-server-tauri -g -a cursor --all -y
 ```
 
 ### Useful options
@@ -43,7 +43,7 @@ npx skills add hypothesi/mcp-server-tauri -g -a cursor --all -y
 
 ```bash
 # Preview available skills
-npx skills add hypothesi/mcp-server-tauri --list
+npx skills add Hushlor/mcp-server-tauri --list
 ```
 
 ## Available Skill
@@ -58,7 +58,7 @@ If you prefer not to use `npx skills`, you can install the CLI package and wire 
 bundled skill with the `@tanstack/intent` tool:
 
 ```bash
-npm install -g @hypothesi/tauri-mcp-cli
+npm install -g @hushlor/tauri-mcp-cli
 npx @tanstack/intent@latest install
 ```
 
@@ -70,7 +70,7 @@ your agent configuration files (`CLAUDE.md`, `.cursorrules`, etc.).
 If you use Claude Code, you can install the bundled skill as a Claude Code Plugin instead:
 
 ```bash
-/plugin marketplace add hypothesi/mcp-server-tauri
+/plugin marketplace add Hushlor/mcp-server-tauri
 /plugin install tauri-mcp-cli
 ```
 

@@ -4,7 +4,7 @@ import path from 'path';
 import vm from 'vm';
 import { Command, Option } from 'commander';
 
-import { getCliToolDefinitions } from '@hypothesi/tauri-mcp-server';
+import { getCliToolDefinitions } from '@hushlor/tauri-mcp-server';
 import { createCallResult } from 'mcporter';
 
 import { runMcporterCommand, SERVER_NAME } from './runtime.js';

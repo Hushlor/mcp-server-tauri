@@ -7,8 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.13.0] - 2026-08-03
+
 ### Added
-- Add Windows UI Automation dialog discovery and interaction on a dedicated COM MTA thread, restricted to same-process dialog ownership chains rooted at the connected Tauri window and supporting multi-file, folder, navigation, and nested confirmation workflows.
+- Integrated Windows native dialog automation from PR #39 and stale-session heartbeat recovery from PR #42.
+
+### Changed
+- Rebranded the Rust crate as `tauri-plugin-hushlor-mcp-bridge` and the optional JS bindings as `@hushlor/tauri-plugin-mcp-bridge`; the runtime plugin identifier and permission prefix are now `hushlor-mcp-bridge`, while the `tauri_plugin_mcp_bridge` library and source dependency alias remain stable.
+
+### Breaking Changes
+- Existing Tauri capability entries must migrate from `mcp-bridge:default` to `hushlor-mcp-bridge:default`, and direct IPC invocations must use the `plugin:hushlor-mcp-bridge|...` prefix.
+
+### Fixed
+- Integrated control-WebSocket origin validation from PR #38 and cross-platform package preparation from PR #44.
 
 ## [0.12.0] - 2026-07-05
 

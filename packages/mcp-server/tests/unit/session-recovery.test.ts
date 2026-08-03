@@ -32,7 +32,7 @@ vi.mock('../../src/driver/plugin-client.js', () => {
          return {
             success: true,
             data: {
-               app: { identifier: 'com.hypothesi.test-app' },
+               app: { identifier: 'com.hushlor.tauri-mcp-test-app' },
                cwd: '/test/app',
             },
          };

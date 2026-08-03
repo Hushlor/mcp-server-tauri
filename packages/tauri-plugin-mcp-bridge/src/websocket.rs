@@ -206,20 +206,22 @@ async fn handle_invoke_tauri<R: Runtime>(app: &AppHandle<R>, id: &str, args: &Va
         .map(|s| s.to_string());
 
     match tauri_cmd {
-        "plugin:mcp-bridge|get_window_info" => match commands::resolve_window(app, window_label) {
-            Ok(window) => match commands::get_window_info(window).await {
-                Ok(data) => success_response(id, data),
+        "plugin:hushlor-mcp-bridge|get_window_info" => {
+            match commands::resolve_window(app, window_label) {
+                Ok(window) => match commands::get_window_info(window).await {
+                    Ok(data) => success_response(id, data),
+                    Err(e) => error_response(id, e),
+                },
                 Err(e) => error_response(id, e),
-            },
-            Err(e) => error_response(id, e),
-        },
-        "plugin:mcp-bridge|get_backend_state" => {
+            }
+        }
+        "plugin:hushlor-mcp-bridge|get_backend_state" => {
             match commands::get_backend_state(app.clone()).await {
                 Ok(data) => success_response(id, data),
                 Err(e) => error_response(id, e),
             }
         }
-        "plugin:mcp-bridge|start_ipc_monitor" => {
+        "plugin:hushlor-mcp-bridge|start_ipc_monitor" => {
             let Some(window) = app.webview_windows().values().next().cloned() else {
                 return error_response(id, "No window available");
             };
@@ -228,7 +230,7 @@ async fn handle_invoke_tauri<R: Runtime>(app: &AppHandle<R>, id: &str, args: &Va
                 Err(e) => error_response(id, e),
             }
         }
-        "plugin:mcp-bridge|stop_ipc_monitor" => {
+        "plugin:hushlor-mcp-bridge|stop_ipc_monitor" => {
             let Some(window) = app.webview_windows().values().next().cloned() else {
                 return error_response(id, "No window available");
             };
@@ -237,11 +239,13 @@ async fn handle_invoke_tauri<R: Runtime>(app: &AppHandle<R>, id: &str, args: &Va
                 Err(e) => error_response(id, e),
             }
         }
-        "plugin:mcp-bridge|get_ipc_events" => match commands::get_ipc_events(app.state()).await {
-            Ok(data) => success_response(id, data),
-            Err(e) => error_response(id, e),
-        },
-        "plugin:mcp-bridge|emit_event" => {
+        "plugin:hushlor-mcp-bridge|get_ipc_events" => {
+            match commands::get_ipc_events(app.state()).await {
+                Ok(data) => success_response(id, data),
+                Err(e) => error_response(id, e),
+            }
+        }
+        "plugin:hushlor-mcp-bridge|emit_event" => {
             let Some(event_name) = args
                 .get("args")
                 .and_then(|a| a.get("eventName"))

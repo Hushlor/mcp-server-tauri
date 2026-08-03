@@ -146,7 +146,7 @@ describe('Session Manager E2E Tests', () => {
          expect(status.connected).toBe(true);
          expect(status.app).toBeDefined();
          expect(status.identifier).toBeDefined();
-         expect(status.identifier).toBe('com.hypothesi.test-app');
+         expect(status.identifier).toBe('com.hushlor.tauri-mcp-test-app');
          expect(status.host).toBeDefined();
          expect(status.port).toBe(port);
       }, TIMEOUT);

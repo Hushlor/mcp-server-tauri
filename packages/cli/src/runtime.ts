@@ -23,13 +23,13 @@ const SERVER_BOOTSTRAP_LINES = [
 const SERVER_BOOTSTRAP = SERVER_BOOTSTRAP_LINES.join('\n');
 
 function resolveServerEntryUrl(): string {
-   const serverEntryPath = fileURLToPath(import.meta.resolve('@hypothesi/tauri-mcp-server'));
+   const serverEntryPath = fileURLToPath(import.meta.resolve('@hushlor/tauri-mcp-server'));
 
    return pathToFileURL(serverEntryPath).href;
 }
 
 async function resolveServerVersion(): Promise<string> {
-   const serverEntryPath = fileURLToPath(import.meta.resolve('@hypothesi/tauri-mcp-server'));
+   const serverEntryPath = fileURLToPath(import.meta.resolve('@hushlor/tauri-mcp-server'));
 
    const serverPackageJsonPath = path.join(path.dirname(serverEntryPath), '..', 'package.json');
 

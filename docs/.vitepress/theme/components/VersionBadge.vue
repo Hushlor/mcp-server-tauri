@@ -14,7 +14,7 @@ onMounted(async () => {
    try {
       // Fetch latest release from GitHub API
       const response = await fetch(
-         'https://api.github.com/repos/hypothesi/mcp-server-tauri/releases/latest'
+         'https://api.github.com/repos/Hushlor/mcp-server-tauri/releases/latest'
       );
 
       if (response.ok) {

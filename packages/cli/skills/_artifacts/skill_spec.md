@@ -1,10 +1,10 @@
-# Skill Spec — @hypothesi/tauri-mcp-cli
+# Skill Spec — @hushlor/tauri-mcp-cli
 
 Generated from `domain_map.yaml`. Human-readable companion for review.
 
 ## Library Overview
 
-**Package:** `@hypothesi/tauri-mcp-cli`  
+**Package:** `@hushlor/tauri-mcp-cli`
 **Audience:** AI coding agents automating or testing Tauri v2 desktop and mobile applications  
 **Structure:** Single bundled skill (`tauri-mcp-cli`)
 
@@ -38,7 +38,7 @@ This skill deliberately covers the entire CLI surface so agents do not need to c
 | 2 | Trusting `driver-session start` without checking `driver-session status --json` | HIGH |
 | 3 | Using camelCase flags instead of kebab-case | HIGH |
 | 4 | Expecting screenshot bytes on stdout instead of a file on disk | HIGH |
-| 5 | Using IPC tools without an active `tauri-plugin-mcp-bridge` plugin | HIGH |
+| 5 | Using IPC tools without an active `tauri-plugin-hushlor-mcp-bridge` plugin | HIGH |
 | 6 | Connecting to real Android devices without `adb reverse` or `--host` | HIGH |
 | 7 | Typing without `--selector` on `webview-keyboard --action type` | MEDIUM |
 | 8 | Returning a bare function from `webview-execute-js` | MEDIUM |

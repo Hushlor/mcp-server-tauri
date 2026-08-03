@@ -1,186 +1,67 @@
-# Releasing Packages
+# Releasing the Hushlor downstream
 
-This monorepo supports independent versioning and releasing of each package. Each package
-can be released separately with its own version number.
+This fork uses one coordinated semantic version across the three npm packages and the Rust crate:
 
-## Available Packages
+- `@hushlor/tauri-mcp-server` (npm)
+- `@hushlor/tauri-mcp-cli` (npm)
+- `@hushlor/tauri-plugin-mcp-bridge` (npm bindings)
+- `tauri-plugin-hushlor-mcp-bridge` (crates.io; consumers keep the dependency alias `tauri-plugin-mcp-bridge`)
 
-   * **plugin** (`@hypothesi/tauri-plugin-mcp-bridge`): Tauri plugin published to both
-     crates.io and npm
-   * **server** (`@hypothesi/tauri-mcp-server`): MCP server published to npm only
+The runtime binary and Rust library/import name remain stable. The downstream Tauri plugin identifier and permission prefix are intentionally `hushlor-mcp-bridge`; consumers keep the source-compatible dependency alias `tauri-plugin-mcp-bridge` while migrating capability entries and direct IPC command strings.
 
-## Release Process
+## Before tagging
 
-### Prerequisites
+1. Update all four changelogs with the new version and date; preserve historical upstream entries.
+2. Set the same version in the three `package.json` files, `packages/tauri-plugin-mcp-bridge/Cargo.toml`, both Cargo lockfiles, `package-lock.json`, CLI metadata, and `packages/mcp-server/server.json`.
+3. Ensure the CLI dependency on `@hushlor/tauri-mcp-server` is the exact same version.
+4. Run `npm install`, `npm run build`, `npm test`, `npm run test:cli`, `npm run standards`, and the Rust checks described in `AGENTS.md`.
+5. Review `git diff --check` and confirm the worktree is clean.
 
-1. **NPM Token**: Set up `NPM_TOKEN` secret in GitHub repository settings
-2. **Cargo Token** (for plugin only): Set up `CARGO_REGISTRY_TOKEN` secret in GitHub
-   repository settings
-   * Get token from [crates.io settings](https://crates.io/settings/tokens)
-   * Run `cargo login <token>` locally to test
-
-### Manual Release
-
-#### Release Plugin (Cargo + NPM)
+## Local validation helper
 
 ```bash
-# Release with specific version
-npm run release:plugin 0.1.1
-
-# Or auto-bump (patch, minor, or major)
-npm run release:plugin patch
-npm run release:plugin minor
-npm run release:plugin major
-
-# Dry run to test
-npm run release:plugin 0.1.1 --dry-run
+node scripts/release-package.js 0.13.0 --dry-run
 ```
 
-This will:
+The helper validates committed metadata, builds all packages, runs Cargo checks, packs all npm packages, and packages the Rust crate. It never rewrites versions, commits, tags, pushes, or publishes in dry-run mode.
 
-1. Update version in `Cargo.toml` and `package.json`
-2. Build the TypeScript bindings
-3. Publish to crates.io (if not dry-run)
-4. Publish to npm (if not dry-run)
-5. Create git tag: `tauri-plugin-mcp-bridge/v0.1.1`
-6. Commit version changes
+## Automated release
 
-After running, push the tag:
+### One-time bootstrap (`0.13.0`)
+
+Publish the first downstream version from an authenticated local account before configuring npm Trusted Publishing. The helper validates both credentials before any upload, builds/checks the commit, and publishes in this order: plugin npm bindings, Rust crate, server npm package, then CLI npm package. These registry uploads are external and effectively irreversible, so run them only after explicit publication approval:
 
 ```bash
-git push origin tauri-plugin-mcp-bridge/v0.1.1
-git push origin HEAD
+npm login
+npm whoami
+# PowerShell: $env:CARGO_REGISTRY_TOKEN = '<crates.io token>'
+# POSIX:     export CARGO_REGISTRY_TOKEN='<crates.io token>'
+node scripts/release-package.js 0.13.0
 ```
 
-GitHub Actions will automatically:
-
-   * Create a GitHub release
-   * Extract release notes from CHANGELOG.md
-
-#### Release Server (NPM only)
+If the helper stops after an upload, inspect the registry before retrying. Continue one package at a time with the exact commands below rather than blindly repeating an already successful publication:
 
 ```bash
-# Release with specific version
-npm run release:server 0.1.1
-
-# Or auto-bump
-npm run release:server patch
-
-# Dry run
-npm run release:server 0.1.1 --dry-run
+npm publish --workspace=@hushlor/tauri-plugin-mcp-bridge --access public
+cargo publish --locked --manifest-path packages/tauri-plugin-mcp-bridge/Cargo.toml
+npm publish --workspace=@hushlor/tauri-mcp-server --access public
+npm publish --workspace=@hushlor/tauri-mcp-cli --access public
 ```
 
-This will:
-
-1. Update version in `package.json`
-2. Build the package
-3. Run tests
-4. Publish to npm (if not dry-run)
-5. Create git tag: `mcp-server/v0.1.1`
-6. Commit version changes
-
-After running, push the tag:
+Configure Trusted Publishers for all three npm packages only after `0.13.0` is visible on npm. Then create and push the signed bootstrap tag; the workflow verifies the existing npm/crates.io artifacts, skips all upload jobs, creates the GitHub release, and triggers MCP Registry publication:
 
 ```bash
-git push origin mcp-server/v0.1.1
-git push origin HEAD
+git tag -s v0.13.0 -m "Release v0.13.0"
+git push personal main
+git push personal v0.13.0
 ```
 
-## Updating CHANGELOG
+For a normal clone, replace `personal` with the explicitly configured Hushlor fork remote; never push this release to an upstream `origin` by accident.
 
-Before releasing, update the CHANGELOG.md in the package directory:
+### Normal releases (`0.13.1` and later)
 
-```markdown
-## [Unreleased]
+`.github/workflows/release.yml` accepts the exact `v0.13.0` bootstrap tag or `v<major>.<minor>.<patch>` tags at `0.13.1` and later. It verifies the tag against committed metadata, runs tests with locked Rust dependencies, publishes npm with Trusted Publishing/OIDC and public access, publishes the plugin crate in a separate retryable job with `CARGO_REGISTRY_TOKEN`, publishes the CLI only after the exact server version succeeds, and creates a GitHub release. It does not mutate source metadata at publish time.
 
-## [0.1.1] - 2024-01-15
+## npm bootstrap and Cargo token
 
-### Fixed
-
-   * Fixed issue with IPC monitoring
-
-### Changed
-
-   * Improved error handling
-
-```
-
-The release script will extract the changelog entry for the version being released.
-
-## Version Format
-
-Versions follow [Semantic Versioning](https://semver.org/):
-
-   * **MAJOR**: Breaking changes
-   * **MINOR**: New features (backward compatible)
-   * **PATCH**: Bug fixes (backward compatible)
-
-## Tag Format
-
-Tags follow the monorepo pattern:
-
-   * `tauri-plugin-mcp-bridge/v0.1.1`
-   * `mcp-server/v0.1.1`
-
-This allows multiple packages to have independent version numbers while maintaining clear
-organization.
-
-## GitHub Releases
-
-GitHub releases are automatically created by GitHub Actions when tags are pushed. Each
-release includes:
-
-   * Release notes extracted from CHANGELOG.md
-   * Links to published packages (crates.io, npm)
-   * Automatic changelog formatting
-
-## Plugin Publishing Best Practices
-
-The `tauri-plugin-mcp-bridge` package follows Tauri's recommended structure:
-
-### Cargo Crate
-
-   * Published to crates.io as `tauri-plugin-mcp-bridge`
-   * Includes Rust source code and build scripts
-   * README.md is included automatically
-
-### NPM Package
-
-   * Published to npm as `@hypothesi/tauri-plugin-mcp-bridge`
-   * Includes TypeScript bindings in `dist-js/`
-   * Type definitions in `dist-js/index.d.ts`
-   * Source TypeScript in `guest-js/` for reference
-   * `prepublishOnly` script ensures build runs before publish
-
-### Package Structure
-
-```text
-tauri-plugin-mcp-bridge/
-├── src/              # Rust plugin code
-├── guest-js/         # TypeScript source
-├── dist-js/          # Compiled JS + .d.ts (published)
-├── Cargo.toml        # Rust crate config
-├── package.json      # NPM package config
-└── README.md         # Documentation
-```
-
-## Troubleshooting
-
-### Cargo Publish Fails
-
-   * Ensure you're logged in: `cargo login <token>`
-   * Check that the crate name is available on crates.io
-   * Verify all required metadata in `Cargo.toml`
-
-### NPM Publish Fails
-
-   * Ensure you're logged in: `npm login`
-   * Check package name availability
-   * Verify `files` array in `package.json` includes all necessary files
-   * Ensure `dist-js/` is built before publishing
-
-### GitHub Release Not Created
-
-   * Verify the tag was pushed: `git push origin <tag>`
-   * Check GitHub Actions workflow logs
-   * Ensure repository secrets are configured
+Each new scoped npm package must be published once manually before adding its Trusted Publisher (`Hushlor/mcp-server-tauri`, workflow `release.yml`). Thereafter the workflow uses `npm publish --provenance` with `id-token: write`; no `NPM_TOKEN` is required. Store only the crates.io API token in `CARGO_REGISTRY_TOKEN`.

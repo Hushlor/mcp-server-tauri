@@ -3993,8 +3993,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "tauri-plugin-mcp-bridge"
-version = "0.12.0"
+name = "tauri-plugin-hushlor-mcp-bridge"
+version = "0.13.0"
 dependencies = [
  "base64 0.22.1",
  "block2 0.5.1",
@@ -4175,7 +4175,7 @@ dependencies = [
  "tauri",
  "tauri-build",
  "tauri-plugin-dialog",
- "tauri-plugin-mcp-bridge",
+ "tauri-plugin-hushlor-mcp-bridge",
  "tauri-plugin-opener",
 ]
 

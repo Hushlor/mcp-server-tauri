@@ -7,14 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.13.0] - 2026-08-03
+
 ### Added
-- Windows-only `native_dialog_snapshot` and `native_dialog_interact` tools use Microsoft UI Automation to inspect and control native dialogs owned by the connected Tauri application, including multi-file Open, folder selection, navigation controls, nested ownership chains, and Save overwrite confirmations.
+- Integrated Windows native dialog snapshot/interact tools from PR #39.
+
+### Changed
+- Rebranded the maintained downstream distribution as Hushlor-owned npm, Cargo, MCP Registry, and documentation identities. The downstream runtime plugin identifier and permission namespace are now `hushlor-mcp-bridge`; the Rust library/import name and upstream MIT attribution remain preserved.
 
 ### Fixed
-- `tauri-mcp-server`: keep bridge WebSockets alive with ping/pong heartbeats and reconnect stale cached sessions when `driver_session start` is called again.
-- Node package builds no longer depend on Unix-only `cp` and `chmod` commands, allowing the server, CLI, and root workspace builds to run under native Windows shells.
-
-- Node package builds no longer depend on Unix-only `cp` and `chmod` commands, allowing the server, CLI, and root workspace builds to run under native Windows shells.
+- Integrated origin validation (#38), console log line limits (#40), stale-session heartbeat recovery (#42), and cross-platform package builds (#44).
+- Pinned the MCP SDK v1 to `1.30.0` and `ws` to `8.21.1`, with patched runtime transitive dependencies for the published server.
+- Normalized union tool schemas for SDK v1 `tools/list` clients while preserving their alternatives.
 
 ## [0.12.0] - 2026-07-05
 

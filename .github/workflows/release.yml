@@ -1,395 +1,286 @@
-name: Release Packages
+name: Release Hushlor Packages
 
 on:
   push:
     tags:
-      - "v*"                          # Release all packages with same version
-      - "tauri-plugin-mcp-bridge/v*"  # Release only the plugin
-      - "mcp-server/v*"               # Release only the server
-      - "tauri-mcp-cli/v*"            # Release only the CLI
+      - "v*"
+
+permissions:
+  contents: read
 
 jobs:
-  determine-packages:
-    name: Determine packages to release
+  verify:
+    name: Verify committed release metadata
     runs-on: ubuntu-latest
     outputs:
-      release-plugin: ${{ steps.check.outputs.plugin }}
-      release-server: ${{ steps.check.outputs.server }}
-      release-cli: ${{ steps.check.outputs.cli }}
-      version: ${{ steps.check.outputs.version }}
+      version: ${{ steps.version.outputs.version }}
+      bootstrap: ${{ steps.version.outputs.bootstrap }}
     steps:
-      - name: Checkout code
+      - name: Checkout release commit
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          fetch-depth: 1
           persist-credentials: false
-
-      - name: Extract version and check packages
-        id: check
-        run: |
-          TAG=${GITHUB_REF#refs/tags/}
-
-          # Check if we should release plugin
-          if [[ "$TAG" == "tauri-plugin-mcp-bridge/v"* ]]; then
-            VERSION=${TAG#tauri-plugin-mcp-bridge/v}
-            echo "plugin=true" >> $GITHUB_OUTPUT
-            echo "server=false" >> $GITHUB_OUTPUT
-            echo "cli=false" >> $GITHUB_OUTPUT
-          elif [[ "$TAG" == "mcp-server/v"* ]]; then
-            VERSION=${TAG#mcp-server/v}
-            echo "plugin=false" >> $GITHUB_OUTPUT
-            echo "server=true" >> $GITHUB_OUTPUT
-            echo "cli=false" >> $GITHUB_OUTPUT
-          elif [[ "$TAG" == "tauri-mcp-cli/v"* ]]; then
-            VERSION=${TAG#tauri-mcp-cli/v}
-            echo "plugin=false" >> $GITHUB_OUTPUT
-            echo "server=false" >> $GITHUB_OUTPUT
-            echo "cli=true" >> $GITHUB_OUTPUT
-          else
-            # Generic version tag - release all packages
-            VERSION=${TAG#v}
-            echo "plugin=true" >> $GITHUB_OUTPUT
-            echo "server=true" >> $GITHUB_OUTPUT
-            echo "cli=true" >> $GITHUB_OUTPUT
-          fi
-
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-
-  test-plugin:
-    name: Test tauri-plugin-mcp-bridge
-    needs: determine-packages
-    if: needs.determine-packages.outputs.release-plugin == 'true'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "24"
-          cache: "npm"
+          cache: npm
 
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install system dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf xvfb
-
-      - name: Install dependencies
+      - name: Install dependencies without changing manifests
         run: npm ci
 
-      - name: Build and test plugin
+      - name: Verify tag and committed versions
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          cd packages/tauri-plugin-mcp-bridge
-          npm run build
-          cargo test --all-features
-          cargo fmt -- --check
-          cargo clippy -- -D warnings
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import { execFileSync } from 'node:child_process';
+
+          const tag = process.env.RELEASE_TAG ?? '';
+          const match = /^v(\d+\.\d+\.\d+)$/.exec(tag);
+          if (!match) throw new Error(`Release tag must be v<major>.<minor>.<patch>; received ${tag}`);
+          const version = match[1];
+          const [major, minor, patch] = version.split('.').map(Number);
+          const bootstrap = version === '0.13.0';
+          if (!bootstrap && (major < 0 || (major === 0 && (minor < 13 || (minor === 13 && patch < 1))))) {
+            throw new Error(`Release ${version} is below the Hushlor downstream baseline v0.13.0`);
+          }
+          const readJson = (path) => JSON.parse(readFileSync(path, 'utf8'));
+          const manifests = [
+            ['packages/mcp-server/package.json', '@hushlor/tauri-mcp-server'],
+            ['packages/cli/package.json', '@hushlor/tauri-mcp-cli'],
+            ['packages/tauri-plugin-mcp-bridge/package.json', '@hushlor/tauri-plugin-mcp-bridge'],
+          ];
+          for (const [path, expectedName] of manifests) {
+            const data = readJson(path);
+            if (data.name !== expectedName || data.version !== version) {
+              throw new Error(`${path} must be ${expectedName}@${version}`);
+            }
+          }
+          const cli = readJson('packages/cli/package.json');
+          if (cli.dependencies?.['@hushlor/tauri-mcp-server'] !== version) {
+            throw new Error('CLI must depend on the exact tagged server version');
+          }
+          const cargo = readFileSync('packages/tauri-plugin-mcp-bridge/Cargo.toml', 'utf8');
+          if (!/^name = "tauri-plugin-hushlor-mcp-bridge"$/m.test(cargo) || !new RegExp(`^version = "${version.replaceAll('.', '\\.') }"$`, 'm').test(cargo) || !/^links = "tauri-plugin-hushlor-mcp-bridge"$/m.test(cargo)) {
+            throw new Error('Cargo manifest name/version do not match the tagged release');
+          }
+          const server = readJson('packages/mcp-server/server.json');
+          if (server.name !== 'io.github.hushlor/mcp-server-tauri' || server.version !== version || server.packages?.[0]?.identifier !== '@hushlor/tauri-mcp-server' || server.packages?.[0]?.version !== version) {
+            throw new Error('MCP Registry metadata does not match the tagged release');
+          }
+          const rootGemini = readJson('gemini-extension.json');
+          const cliGemini = readJson('packages/cli/gemini-extension.json');
+          for (const key of ['name', 'description', 'contextFileName']) {
+            if (rootGemini[key] !== cliGemini[key]) throw new Error(`CLI Gemini metadata diverges from root for ${key}`);
+          }
+          if (rootGemini.version !== version || cliGemini.version !== version) {
+            throw new Error('Gemini extension metadata does not match the tagged release');
+          }
+          const cliPlugin = readJson('packages/cli/.claude-plugin/plugin.json');
+          const marketplace = readJson('.claude-plugin/marketplace.json');
+          const guestPackage = readJson('packages/tauri-plugin-mcp-bridge/guest-js/package.json');
+          if (cliPlugin.version !== version || marketplace.metadata?.version !== version) {
+            throw new Error('CLI plugin and marketplace metadata do not match the tagged release');
+          }
+          if (guestPackage.name !== '@hushlor/tauri-plugin-mcp-bridge' || guestPackage.version !== version) {
+            throw new Error('Guest JS package metadata does not match the tagged release');
+          }
+          if (readFileSync('GEMINI.md', 'utf8') !== readFileSync('packages/cli/GEMINI.md', 'utf8')) {
+            throw new Error('CLI GEMINI.md must be byte-for-byte identical to the root file');
+          }
+          execFileSync('git', ['diff', '--check'], { stdio: 'inherit' });
+          if (bootstrap) {
+            for (const [, expectedName] of manifests) {
+              const publishedVersion = execFileSync('npm', ['view', `${expectedName}@${version}`, 'version'], { encoding: 'utf8' }).trim();
+              if (publishedVersion !== version) {
+                throw new Error(`${expectedName}@${version} must already exist on npm for the bootstrap release`);
+              }
+            }
+
+            const crateResponse = await fetch(`https://crates.io/api/v1/crates/tauri-plugin-hushlor-mcp-bridge/${version}`);
+            if (!crateResponse.ok) {
+              throw new Error(`tauri-plugin-hushlor-mcp-bridge@${version} must already exist on crates.io for the bootstrap release`);
+            }
+          }
+          console.log(`version=${version}`);
+          NODE
+          echo "version=${RELEASE_TAG#v}" >> "$GITHUB_OUTPUT"
+          if [[ "$RELEASE_TAG" == "v0.13.0" ]]; then
+            echo "bootstrap=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "bootstrap=false" >> "$GITHUB_OUTPUT"
+          fi
 
   test-server:
-    name: Test @hypothesi/tauri-mcp-server
-    needs: determine-packages
-    if: needs.determine-packages.outputs.release-server == 'true'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        node: ["24", "20"]
+    name: Build and test server
+    needs: verify
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: ${{ matrix.node }}
-
-      - name: Install server dependencies only
-        run: npm ci --workspace=@hypothesi/tauri-mcp-server --include-workspace-root
-
-      - name: Build and test server
-        run: |
-          npm run build --workspace=@hypothesi/tauri-mcp-server
-          npm run test:unit --workspace=@hypothesi/tauri-mcp-server
-          npx tsc --noEmit --project packages/mcp-server/tsconfig.json
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - run: npm ci
+      - run: npm run build --workspace=@hushlor/tauri-mcp-server
+      - run: npm run test:unit --workspace=@hushlor/tauri-mcp-server
 
   test-cli:
-    name: Test @hypothesi/tauri-mcp-cli
-    needs: determine-packages
-    if: needs.determine-packages.outputs.release-cli == 'true'
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, macos-latest]
-        node: ["24", "20"]
+    name: Build and test CLI
+    needs: verify
+    runs-on: windows-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: ${{ matrix.node }}
-
-      - name: Install Rust stable
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install system dependencies (Ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
-
-      - name: Cache Rust dependencies
-        uses: actions/cache@v4
+          persist-credentials: false
+      - uses: actions/setup-node@v4
         with:
-          path: |
-            ~/.cargo/bin/
-            ~/.cargo/registry/index/
-            ~/.cargo/registry/cache/
-            ~/.cargo/git/db/
-            packages/test-app/src-tauri/target/
-          key: ${{ runner.os }}-cargo-cli-test-${{ hashFiles('**/Cargo.lock') }}
+          node-version: "24"
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm ci
+      - run: npm run build --workspace=@hushlor/tauri-mcp-server
+      - run: npm run build --workspace=@hushlor/tauri-mcp-cli
+      - run: npm run test:cli
+      - run: npm run skills:validate --workspace=@hushlor/tauri-mcp-cli
 
-      - name: Install dependencies
-        run: npm ci
+  test-plugin:
+    name: Build and test Rust plugin
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - run: npm ci
+      - run: npm run build --workspace=@hushlor/tauri-plugin-mcp-bridge
+      - run: cargo fmt --check --manifest-path packages/tauri-plugin-mcp-bridge/Cargo.toml
+      - run: cargo clippy --locked --manifest-path packages/tauri-plugin-mcp-bridge/Cargo.toml -- -D warnings
+      - run: cargo test --locked --manifest-path packages/tauri-plugin-mcp-bridge/Cargo.toml --all-features
 
-      - name: Build CLI dependencies
-        run: |
-          npm run build --workspace=@hypothesi/tauri-mcp-server
-          npm run build --workspace=@hypothesi/tauri-mcp-cli
-
-      - name: Test CLI
-        run: |
-          cd packages/cli
-          if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
-            xvfb-run -a npm run test
-          else
-            npm run test
-          fi
-          cd ../..
-          npx tsc --noEmit --project packages/cli/tsconfig.json
-
-      - name: Validate agent skills
-        run: npm run skills:validate --workspace=@hypothesi/tauri-mcp-cli
-
-  release-plugin:
-    name: Release tauri-plugin-mcp-bridge
-    needs: [determine-packages, test-plugin]
-    if: needs.determine-packages.outputs.release-plugin == 'true'
+  publish-plugin-npm:
+    name: Publish plugin bindings to npm
+    needs: [verify, test-plugin]
+    if: ${{ needs.verify.outputs.bootstrap != 'true' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: "lts/*"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Setup Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Install system dependencies
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: Ensure npm Trusted Publishing support
         run: |
-          sudo apt-get update
-          sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+          npm install --global npm@11.5.1
+          npm --version
+      - run: npm publish --workspace=@hushlor/tauri-plugin-mcp-bridge --access public --provenance
 
-      - name: Install and update versions
-        run: |
-          npm ci
-          cd packages/tauri-plugin-mcp-bridge
-          sed -i.bak "s/^version = \".*\"/version = \"${{ needs.determine-packages.outputs.version }}\"/" Cargo.toml && rm Cargo.toml.bak
-          npm version ${{ needs.determine-packages.outputs.version }} --no-git-tag-version --allow-same-version
-
-      - name: Build
-        run: |
-          cd packages/tauri-plugin-mcp-bridge
-          npm run build
-          cargo build --release
-
-      - name: Publish to NPM
-        run: |
-          cd packages/tauri-plugin-mcp-bridge
-          npm publish --access public --provenance
-        continue-on-error: false
-
-      - name: Publish to crates.io
+  publish-plugin-cargo:
+    name: Publish plugin crate to crates.io
+    needs: [verify, test-plugin]
+    if: ${{ needs.verify.outputs.bootstrap != 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Linux dependencies
+        run: sudo apt-get update && sudo apt-get install -y libglib2.0-dev libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+      - name: Verify crates.io token
         env:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
         run: |
-          cd packages/tauri-plugin-mcp-bridge
-          cargo publish --token "${CARGO_REGISTRY_TOKEN}"
-        continue-on-error: false
+          test -n "$CARGO_REGISTRY_TOKEN"
+          cargo publish --locked --manifest-path packages/tauri-plugin-mcp-bridge/Cargo.toml
 
-  release-server:
-    name: Release @hypothesi/tauri-mcp-server
-    needs: [determine-packages, test-server]
-    if: needs.determine-packages.outputs.release-server == 'true'
+  publish-server:
+    name: Publish server to npm
+    needs: [verify, test-server]
+    if: ${{ needs.verify.outputs.bootstrap != 'true' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: "lts/*"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Install and update version
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: Ensure npm Trusted Publishing support
         run: |
-          npm ci
-          cd packages/mcp-server
-          npm version ${{ needs.determine-packages.outputs.version }} --no-git-tag-version --allow-same-version
+          npm install --global npm@11.5.1
+          npm --version
+      - run: npm publish --workspace=@hushlor/tauri-mcp-server --access public --provenance
 
-      - name: Update server.json version
-        run: node packages/mcp-server/scripts/update-server-json-version.js ${{ needs.determine-packages.outputs.version }}
-
-      - name: Build
-        run: |
-          cd packages/mcp-server
-          npm run build
-
-      - name: Publish to NPM
-        run: |
-          cd packages/mcp-server
-          npm publish --access public --provenance
-        continue-on-error: false
-
-  release-cli:
-    name: Release @hypothesi/tauri-mcp-cli
-    needs: [determine-packages, test-cli]
-    if: needs.determine-packages.outputs.release-cli == 'true'
+  publish-cli:
+    name: Publish CLI to npm
+    needs: [verify, test-cli, publish-server]
+    if: ${{ needs.verify.outputs.bootstrap != 'true' }}
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       id-token: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/checkout@v4
         with:
-          node-version: "lts/*"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Install and update version
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+      - run: npm ci
+      - name: Ensure npm Trusted Publishing support
         run: |
-          npm ci
-          cd packages/cli
-          npm version ${{ needs.determine-packages.outputs.version }} --no-git-tag-version --allow-same-version
-
-      - name: Build
-        run: |
-          npm run build --workspace=@hypothesi/tauri-mcp-server
-          cd packages/cli
-          npm run build
-
-      - name: Publish to NPM
-        run: |
-          cd packages/cli
-          npm publish --access public --provenance
-        continue-on-error: false
+          npm install --global npm@11.5.1
+          npm --version
+      - run: npm publish --workspace=@hushlor/tauri-mcp-cli --access public --provenance
 
   create-release:
-    name: Create GitHub Release
-    needs: [determine-packages, release-plugin, release-server, release-cli]
-    if: ${{ !cancelled() && (needs.release-plugin.result == 'success' || needs.release-server.result == 'success' || needs.release-cli.result == 'success' || needs.release-plugin.result == 'skipped' || needs.release-server.result == 'skipped' || needs.release-cli.result == 'skipped') }}
+    name: Create GitHub release
+    needs: [verify, test-server, test-cli, test-plugin, publish-plugin-npm, publish-plugin-cargo, publish-server, publish-cli]
+    if: ${{ always() && needs.verify.result == 'success' && needs.test-server.result == 'success' && needs.test-cli.result == 'success' && needs.test-plugin.result == 'success' && (needs.verify.outputs.bootstrap == 'true' || (needs.publish-plugin-npm.result == 'success' && needs.publish-plugin-cargo.result == 'success' && needs.publish-server.result == 'success' && needs.publish-cli.result == 'success')) }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Generate release notes
-        id: release_notes
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Extract release notes
+        id: notes
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
         run: |
-          VERSION=${{ needs.determine-packages.outputs.version }}
-
-          # Function to extract changelog section for a specific version
-          extract_changelog() {
-            local file=$1
-            local version=$2
-            # Extract content between "## [version]" and the next "## ["
-            # Skip "_No changes to this package._" entries
-            awk -v ver="$version" '
-              BEGIN { found=0 }
-              /^## \[/ { if (found) exit; if ($0 ~ "\\[" ver "\\]") { found=1; next } }
-              found && !/^## \[/ && !/^_No changes/ { print }
-            ' "$file"
-          }
-
-          {
-            echo "notes<<EOF"
-            echo ""
-
-            if [[ "${{ needs.determine-packages.outputs.release-plugin }}" == "true" ]]; then
-              echo "## tauri-plugin-mcp-bridge"
-              echo ""
-              echo "[![crates.io](https://img.shields.io/crates/v/tauri-plugin-mcp-bridge)](https://crates.io/crates/tauri-plugin-mcp-bridge) [![npm](https://img.shields.io/npm/v/@hypothesi/tauri-plugin-mcp-bridge)](https://www.npmjs.com/package/@hypothesi/tauri-plugin-mcp-bridge)"
-              echo ""
-              PLUGIN_CHANGES=$(extract_changelog "packages/tauri-plugin-mcp-bridge/CHANGELOG.md" "$VERSION")
-              if [[ -n "$PLUGIN_CHANGES" ]]; then
-                echo "$PLUGIN_CHANGES"
-              else
-                echo "_No changes to this package._"
-              fi
-              echo ""
-            fi
-
-            if [[ "${{ needs.determine-packages.outputs.release-server }}" == "true" ]]; then
-              echo "## @hypothesi/tauri-mcp-server"
-              echo ""
-              echo "[![npm](https://img.shields.io/npm/v/@hypothesi/tauri-mcp-server)](https://www.npmjs.com/package/@hypothesi/tauri-mcp-server)"
-              echo ""
-              SERVER_CHANGES=$(extract_changelog "packages/mcp-server/CHANGELOG.md" "$VERSION")
-              if [[ -n "$SERVER_CHANGES" ]]; then
-                echo "$SERVER_CHANGES"
-              else
-                echo "_No changes to this package._"
-              fi
-              echo ""
-            fi
-
-            if [[ "${{ needs.determine-packages.outputs.release-cli }}" == "true" ]]; then
-              echo "## @hypothesi/tauri-mcp-cli"
-              echo ""
-              echo "[![npm](https://img.shields.io/npm/v/@hypothesi/tauri-mcp-cli)](https://www.npmjs.com/package/@hypothesi/tauri-mcp-cli)"
-              echo ""
-              CLI_CHANGES=$(extract_changelog "packages/cli/CHANGELOG.md" "$VERSION")
-              if [[ -n "$CLI_CHANGES" ]]; then
-                echo "$CLI_CHANGES"
-              else
-                echo "_No changes to this package._"
-              fi
-              echo ""
-            fi
-
-            echo "EOF"
-          } >> $GITHUB_OUTPUT
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+          awk -v ver="$VERSION" 'BEGIN { found=0 } /^## \[/ { if (found) exit; if ($0 ~ "\\[" ver "\\]") { found=1; next } } found { print }' CHANGELOG.md > release-notes.md
+      - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "Release ${{ needs.determine-packages.outputs.version }}"
-          body: ${{ steps.release_notes.outputs.notes }}
-          draft: false
-          prerelease: false
+          name: Release ${{ github.ref_name }}
+          body_path: release-notes.md

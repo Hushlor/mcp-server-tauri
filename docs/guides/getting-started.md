@@ -35,7 +35,7 @@ Examine these files and report what needs to be added or updated:
 Check \`src-tauri/Cargo.toml\` for \`tauri-plugin-mcp-bridge\`. If missing or outdated, note that it needs:
 \`\`\`toml
 [dependencies]
-tauri-plugin-mcp-bridge = "${versions.plugin.cargo}"
+tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "${versions.plugin.full}" }
 \`\`\`
 
 ### 2. Plugin Registration
@@ -52,7 +52,7 @@ Check \`src-tauri/tauri.conf.json\` for \`withGlobalTauri: true\` under the \`ap
 **This is required** - without it, the MCP bridge cannot communicate with the webview.
 
 ### 4. Plugin Permissions
-Check \`src-tauri/capabilities/default.json\` (or similar) for \`"mcp-bridge:default"\` permission.
+Check \`src-tauri/capabilities/default.json\` (or similar) for \`"hushlor-mcp-bridge:default"\` permission.
 
 ## Your Response Format
 
@@ -96,7 +96,7 @@ Before you begin, ensure you have:
 First, add the MCP server to your AI assistant using [aix](https://aix.a1st.dev/cli/add/#aix-add-mcp):
 
 ```bash
-npx -y @a1st/aix add mcp tauri --command 'npx @hypothesi/tauri-mcp-server' --user
+npx -y @a1st/aix add mcp tauri --command 'npx @hushlor/tauri-mcp-server' --user
 ```
 
 Supported clients: `claude-code`, `cursor`, `windsurf`, `vscode`, `cline`, `roo-cline`, `claude`, `zed`, `goose`, `warp`, `codex`
@@ -104,7 +104,7 @@ Supported clients: `claude-code`, `cursor`, `windsurf`, `vscode`, `cline`, `roo-
 If you want a direct terminal workflow instead, install the companion CLI:
 
 ```bash
-npm install -g @hypothesi/tauri-mcp-cli
+npm install -g @hushlor/tauri-mcp-cli
 tauri-mcp driver-session start --port 9223
 ```
 
@@ -118,7 +118,7 @@ If you prefer to configure manually, add to your MCP config:
   "mcpServers": {
     "tauri": {
       "command": "npx",
-      "args": ["-y", "@hypothesi/tauri-mcp-server"]
+      "args": ["-y", "@hushlor/tauri-mcp-server"]
     }
   }
 }
@@ -193,10 +193,10 @@ The copied text contains step-by-step instructions for:
 From your `src-tauri` directory:
 
 ```bash
-cargo add tauri-plugin-mcp-bridge
+cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.13.0
 ```
 
-Or manually add to `Cargo.toml`: <code>tauri-plugin-mcp-bridge = "{{ versions.plugin.cargo }}"</code>
+Or manually add to `Cargo.toml`: <code>tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "{{ versions.plugin.full }}" }</code>
 
 #### 2. Register the Plugin
 
@@ -239,7 +239,7 @@ Add to `src-tauri/capabilities/default.json`:
 ```json
 {
   "permissions": [
-    "mcp-bridge:default"
+    "hushlor-mcp-bridge:default"
   ]
 }
 ```
@@ -306,11 +306,11 @@ If the AI can't connect to your Tauri app:
 
 1. Make sure your app is running (`cargo tauri dev`)
 2. Verify `withGlobalTauri` is enabled in `tauri.conf.json`
-3. Check that `mcp-bridge:default` permission is added
+3. Check that `hushlor-mcp-bridge:default` permission is added
 4. Look for WebSocket errors in your app's console (port 9223)
 
 ### Need Help?
 
-- [GitHub Issues](https://github.com/hypothesi/mcp-server-tauri/issues)
+- [GitHub Issues](https://github.com/Hushlor/mcp-server-tauri/issues)
 - [Tauri Documentation](https://tauri.app)
 - [Model Context Protocol](https://modelcontextprotocol.io)

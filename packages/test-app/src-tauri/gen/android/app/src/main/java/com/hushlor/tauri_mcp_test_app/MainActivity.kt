@@ -1,4 +1,4 @@
-package com.hypothesi.test_app
+package com.hushlor.tauri_mcp_test_app
 
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge

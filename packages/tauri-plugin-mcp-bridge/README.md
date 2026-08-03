@@ -1,13 +1,15 @@
 # Tauri MCP Bridge Plugin
 
-[![Crates.io](https://img.shields.io/crates/v/tauri-plugin-mcp-bridge.svg)](https://crates.io/crates/tauri-plugin-mcp-bridge)
-[![npm](https://img.shields.io/npm/v/@hypothesi/tauri-plugin-mcp-bridge.svg)](https://www.npmjs.com/package/@hypothesi/tauri-plugin-mcp-bridge)
-[![Documentation](https://docs.rs/tauri-plugin-mcp-bridge/badge.svg)](https://docs.rs/tauri-plugin-mcp-bridge)
-[![License](https://img.shields.io/crates/l/tauri-plugin-mcp-bridge.svg)](https://github.com/hypothesi/mcp-server-tauri)
+[![Crates.io](https://img.shields.io/crates/v/tauri-plugin-hushlor-mcp-bridge.svg)](https://crates.io/crates/tauri-plugin-hushlor-mcp-bridge)
+[![npm](https://img.shields.io/npm/v/@hushlor/tauri-plugin-mcp-bridge.svg)](https://www.npmjs.com/package/@hushlor/tauri-plugin-mcp-bridge)
+[![Documentation](https://docs.rs/tauri-plugin-hushlor-mcp-bridge/badge.svg)](https://docs.rs/tauri-plugin-hushlor-mcp-bridge)
+[![License](https://img.shields.io/crates/l/tauri-plugin-hushlor-mcp-bridge.svg)](https://github.com/Hushlor/mcp-server-tauri)
 
 A Tauri® plugin that bridges the Model Context Protocol (MCP) with Tauri applications, enabling deep inspection and interaction with Tauri's IPC layer, backend state, and window management.
 
-> **📦 This npm package is optional.** It provides TypeScript bindings for calling the plugin from your app's frontend code. If you're just using the [MCP Server for Tauri](https://github.com/hypothesi/mcp-server-tauri), you only need the **Rust crate** (`tauri-plugin-mcp-bridge`)—the MCP server communicates with it directly via WebSocket.
+> **Independent downstream fork:** Hushlor maintains this distribution independently of [hypothesi/mcp-server-tauri](https://github.com/hypothesi/mcp-server-tauri), preserving the upstream MIT license and attribution.
+
+> **📦 This npm package is optional.** It provides TypeScript bindings for calling the plugin from your app's frontend code. If you're just using the [MCP Server for Tauri](https://github.com/Hushlor/mcp-server-tauri), you only need the **Rust crate** (`tauri-plugin-hushlor-mcp-bridge`)—the MCP server communicates with it directly via WebSocket. Consumers can keep the compatible dependency alias `tauri-plugin-mcp-bridge`.
 
 ## Overview
 
@@ -16,14 +18,14 @@ The MCP Bridge plugin extends MCP servers with direct access to Tauri internals.
 ## Installation
 
 ```bash
-cargo add tauri-plugin-mcp-bridge
+cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.13.0
 ```
 
 Or add manually to your `src-tauri/Cargo.toml`:
 
 ```toml
 [dependencies]
-tauri-plugin-mcp-bridge = "0.2"
+tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "0.13.0" }
 ```
 
 ### Optional: TypeScript Bindings
@@ -31,7 +33,7 @@ tauri-plugin-mcp-bridge = "0.2"
 If you want to call the plugin from your app's frontend code (not required for MCP server functionality):
 
 ```bash
-npm install --save-exact @hypothesi/tauri-plugin-mcp-bridge
+npm install --save-exact @hushlor/tauri-plugin-mcp-bridge
 ```
 
 ## Usage
@@ -83,13 +85,13 @@ Monitor all Tauri IPC calls in real-time with timing and argument capture:
 
 ```typescript
 // Start monitoring
-await invoke('plugin:mcp-bridge|start_ipc_monitor');
+await invoke('plugin:hushlor-mcp-bridge|start_ipc_monitor');
 
 // Execute some commands to generate IPC traffic
 await invoke('greet', { name: 'World' });
 
 // Get captured events
-const events = await invoke('plugin:mcp-bridge|get_ipc_events');
+const events = await invoke('plugin:hushlor-mcp-bridge|get_ipc_events');
 ```
 
 ### 2. Window Information
@@ -97,7 +99,7 @@ const events = await invoke('plugin:mcp-bridge|get_ipc_events');
 Get detailed window state:
 
 ```typescript
-const windowInfo = await invoke('plugin:mcp-bridge|get_window_info');
+const windowInfo = await invoke('plugin:hushlor-mcp-bridge|get_window_info');
 // Returns: { width, height, x, y, title, focused, visible }
 ```
 
@@ -106,7 +108,7 @@ const windowInfo = await invoke('plugin:mcp-bridge|get_window_info');
 Inspect application backend state:
 
 ```typescript
-const state = await invoke('plugin:mcp-bridge|get_backend_state');
+const state = await invoke('plugin:hushlor-mcp-bridge|get_backend_state');
 // Returns: { app: { name, identifier, version }, tauri: { version },
 //            environment: { debug, os, arch, family }, windows: [...], timestamp }
 ```
@@ -116,7 +118,7 @@ const state = await invoke('plugin:mcp-bridge|get_backend_state');
 Trigger custom events for testing:
 
 ```typescript
-await invoke('plugin:mcp-bridge|emit_event', {
+await invoke('plugin:hushlor-mcp-bridge|emit_event', {
   eventName: 'custom-event',
   payload: { data: 'test' }
 });
@@ -171,7 +173,7 @@ MCP Server (Node.js)
     └── Plugin Client ──────────────────────┼──> Plugin Commands
          (WebSocket port 9223)              │
                                             │
-                                      mcp-bridge Plugin
+                                      hushlor-mcp-bridge Plugin
                                       (Rust Backend)
 ```
 
@@ -254,7 +256,7 @@ Add the plugin's default permission to your Tauri capabilities file (`src-tauri/
 ```json
 {
   "permissions": [
-    "mcp-bridge:default"
+    "hushlor-mcp-bridge:default"
   ]
 }
 ```
@@ -270,11 +272,11 @@ For detailed API documentation, including:
 - TypeScript examples for frontend usage
 - Architecture and design details
 
-Visit the [docs.rs documentation](https://docs.rs/tauri-plugin-mcp-bridge) or build locally with `npm run docs:rust`.
+Visit the [docs.rs documentation](https://docs.rs/tauri-plugin-hushlor-mcp-bridge) or build locally with `npm run docs:rust`.
 
 ## License
 
-MIT © [hypothesi](https://github.com/hypothesi)
+MIT © Hushlor. Original upstream copyright and attribution are preserved in the package [LICENSE](./LICENSE); see [hypothesi/mcp-server-tauri](https://github.com/hypothesi/mcp-server-tauri) for provenance.
 
 ---
 

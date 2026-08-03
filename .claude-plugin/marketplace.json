@@ -1,22 +1,22 @@
 {
   "name": "tauri-mcp-skills",
   "owner": {
-    "name": "hypothesi",
-    "url": "https://github.com/hypothesi"
+    "name": "Hushlor",
+    "url": "https://github.com/Hushlor"
   },
   "metadata": {
     "description": "Agent skills for automating and testing Tauri v2 applications using the MCP server.",
-    "version": "0.11.0"
+      "version": "0.13.0"
   },
   "plugins": [
     {
       "name": "tauri-mcp-cli",
       "description": "Agent Skills for automating, inspecting, and testing Tauri v2 applications directly from the terminal. Includes skills for driver-session management, webview inspection, and UI interactions.",
       "author": {
-        "name": "hypothesi",
-        "url": "https://github.com/hypothesi"
+        "name": "Hushlor",
+        "url": "https://github.com/Hushlor"
       },
-      "homepage": "https://github.com/hypothesi/mcp-server-tauri",
+      "homepage": "https://github.com/Hushlor/mcp-server-tauri",
       "tags": [
         "tauri",
         "mcp",

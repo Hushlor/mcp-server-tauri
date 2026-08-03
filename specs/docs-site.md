@@ -36,7 +36,7 @@ Documentation is deployed to GitHub Pages via GitHub Actions:
 
 1. The workflow runs automatically when changes are pushed to `docs/`
 2. It builds the documentation and deploys to GitHub Pages
-3. The site will be available at: https://hypothesi.github.io/mcp-server-tauri/
+3. The site will be available at: https://hushlor.github.io/mcp-server-tauri/
 
 To manually trigger deployment:
 - Go to Actions tab in GitHub

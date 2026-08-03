@@ -1,17 +1,11 @@
-import { defineConfig, type HeadConfig } from 'vitepress';
+import { defineConfig } from 'vitepress';
 import llmstxt from 'vitepress-plugin-llms';
 
 // Use /mcp-server-tauri/ for GitHub Pages, / for local dev
 // eslint-disable-next-line no-process-env
-const base = process.env.VITEPRESS_BASE || '/',
-      // eslint-disable-next-line no-process-env
-      isProd = process.env.NODE_ENV === 'production';
+const base = process.env.VITEPRESS_BASE || '/';
 
-const siteUrl = 'https://hypothesi.github.io/mcp-server-tauri';
-
-const analyticsHead: HeadConfig[] = isProd
-   ? [ [ 'script', { defer: '', src: 'https://cloud.umami.is/script.js', 'data-website-id': '5a8a158d-72e4-4908-8598-b49127fc9494' } ] ]
-   : [];
+const siteUrl = 'https://hushlor.github.io/mcp-server-tauri/';
 
 const siteDescription =
    'An MCP server that empowers AI assistants to build, test, and debug Tauri applications.';
@@ -37,7 +31,7 @@ export default defineConfig({
       [ 'meta', { property: 'og:title', content: 'MCP Server Tauri - AI-Powered Tauri Development' } ],
       [ 'meta', { property: 'og:description', content: siteDescription } ],
       [ 'meta', { property: 'og:url', content: siteUrl } ],
-      [ 'meta', { property: 'og:image', content: `${siteUrl}/logo.svg` } ],
+      [ 'meta', { property: 'og:image', content: `${siteUrl}logo.svg` } ],
       // Twitter Card
       [ 'meta', { name: 'twitter:card', content: 'summary' } ],
       [ 'meta', { name: 'twitter:title', content: 'MCP Server Tauri' } ],
@@ -51,12 +45,9 @@ export default defineConfig({
                'desktop app, mobile app, ui automation, testing',
          },
       ],
-      [ 'meta', { name: 'author', content: 'Matt Luedke' } ],
+      [ 'meta', { name: 'author', content: 'Hushlor' } ],
       [ 'meta', { name: 'robots', content: 'index, follow' } ],
-      [ 'meta', { name: 'google-site-verification', content: 'VR-dhovCapAjsitFgJbSdpQedE7sYtSptP9Uf_eNBwY' } ],
       [ 'link', { rel: 'canonical', href: siteUrl } ],
-      // Analytics (production only)
-      ...analyticsHead,
    ],
 
    appearance: 'dark', // Enable theme toggle, default to dark
@@ -105,7 +96,7 @@ export default defineConfig({
       },
 
       socialLinks: [
-         { icon: 'github', link: 'https://github.com/hypothesi/mcp-server-tauri' },
+         { icon: 'github', link: 'https://github.com/Hushlor/mcp-server-tauri' },
       ],
 
       footer: {
@@ -120,7 +111,7 @@ export default defineConfig({
       },
 
       editLink: {
-         pattern: 'https://github.com/hypothesi/mcp-server-tauri/edit/main/docs/:path',
+         pattern: 'https://github.com/Hushlor/mcp-server-tauri/edit/main/docs/:path',
          text: 'Edit this page on GitHub',
       },
    },

@@ -1,24 +1,24 @@
 # CLI Usage
 
-Use `@hypothesi/tauri-mcp-cli` when you want to call the Tauri MCP tools from a terminal,
+Use `@hushlor/tauri-mcp-cli` when you want to call the Tauri MCP tools from a terminal,
 script, or CI pipeline instead of from an MCP client.
 
 ## Install
 
 ```bash
-npm install -g @hypothesi/tauri-mcp-cli
+npm install -g @hushlor/tauri-mcp-cli
 ```
 
 Or run without a permanent install:
 
 ```bash
-npx @hypothesi/tauri-mcp-cli <command>
+npx @hushlor/tauri-mcp-cli <command>
 ```
 
 ## Prerequisites
 
 - A Tauri v2 app running in development mode (`cargo tauri dev`)
-- The `tauri-plugin-mcp-bridge` plugin installed in the app
+- The `tauri-plugin-hushlor-mcp-bridge` plugin installed in the app (under the source alias `tauri-plugin-mcp-bridge`)
 - `withGlobalTauri: true` in `src-tauri/tauri.conf.json`
 
 ## Session Workflow

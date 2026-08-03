@@ -1,8 +1,8 @@
-name: Publish to MCP Registry
+name: Publish Hushlor MCP Registry Metadata
 
 on:
   workflow_run:
-    workflows: ["Release Packages"]
+    workflows: ["Release Hushlor Packages"]
     types:
       - completed
 
@@ -24,18 +24,30 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "lts/*"
+          node-version: "24"
 
-      - name: Update server.json version from package.json
+      - name: Verify committed Hushlor metadata
         working-directory: packages/mcp-server
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          node scripts/update-server-json-version.js "$VERSION"
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
+          const serverJson = JSON.parse(readFileSync('server.json', 'utf8'));
+          if (packageJson.name !== '@hushlor/tauri-mcp-server' || serverJson.name !== 'io.github.hushlor/mcp-server-tauri' || serverJson.packages?.[0]?.identifier !== packageJson.name || serverJson.version !== packageJson.version || serverJson.packages?.[0]?.version !== packageJson.version) {
+            throw new Error('Committed server.json does not match the Hushlor server package');
+          }
+          NODE
 
       - name: Install mcp-publisher
         working-directory: packages/mcp-server
         run: |
-          curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
+          set -euo pipefail
+          publisher_version="v1.8.0"
+          archive="mcp-publisher_linux_amd64.tar.gz"
+          url="https://github.com/modelcontextprotocol/registry/releases/download/${publisher_version}/${archive}"
+          curl --fail --location --silent --show-error --output "$archive" "$url"
+          echo "1370446bbe74d562608e8005a6ccce02d146a661fbd78674e11cc70b9618d6cf  $archive" | sha256sum --check
+          tar --extract --gzip --file "$archive" mcp-publisher
 
       - name: Authenticate to MCP Registry
         working-directory: packages/mcp-server

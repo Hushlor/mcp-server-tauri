@@ -20,7 +20,7 @@ export async function executeIPCCommand(options: {
       // Ensure we have an active session and are connected
       const client = await ensureSessionAndConnect(appIdentifier);
 
-      // Send IPC command via WebSocket to the mcp-bridge plugin
+      // Send IPC command via WebSocket to the hushlor-mcp-bridge plugin
       const response = await client.sendCommand({
          command: 'invoke_tauri',
          args: { command, args },
@@ -60,7 +60,7 @@ export async function manageIPCMonitoring(action: 'start' | 'stop', appIdentifie
 export async function startIPCMonitoring(appIdentifier?: string | number): Promise<string> {
    try {
       // Start the Rust-side monitor state
-      const result = await executeIPCCommand({ command: 'plugin:mcp-bridge|start_ipc_monitor', appIdentifier });
+      const result = await executeIPCCommand({ command: 'plugin:hushlor-mcp-bridge|start_ipc_monitor', appIdentifier });
 
       const parsed = JSON.parse(result);
 
@@ -111,7 +111,7 @@ export async function stopIPCMonitoring(appIdentifier?: string | number): Promis
       }
 
       // Stop the Rust-side monitor state
-      const result = await executeIPCCommand({ command: 'plugin:mcp-bridge|stop_ipc_monitor', appIdentifier });
+      const result = await executeIPCCommand({ command: 'plugin:hushlor-mcp-bridge|stop_ipc_monitor', appIdentifier });
 
       const parsed = JSON.parse(result);
 
@@ -136,7 +136,7 @@ export const GetIPCEventsSchema = z.object({
 
 export async function getIPCEvents(filter?: string, appIdentifier?: string | number): Promise<string> {
    try {
-      const result = await executeIPCCommand({ command: 'plugin:mcp-bridge|get_ipc_events', appIdentifier });
+      const result = await executeIPCCommand({ command: 'plugin:hushlor-mcp-bridge|get_ipc_events', appIdentifier });
 
       const parsed = JSON.parse(result);
 
@@ -173,7 +173,7 @@ export const EmitTestEventSchema = z.object({
 export async function emitTestEvent(eventName: string, payload: unknown, appIdentifier?: string | number): Promise<string> {
    try {
       const result = await executeIPCCommand({
-         command: 'plugin:mcp-bridge|emit_event',
+         command: 'plugin:hushlor-mcp-bridge|emit_event',
          args: {
             eventName,
             payload,
@@ -203,7 +203,7 @@ export const GetWindowInfoSchema = z.object({
 
 export async function getWindowInfo(appIdentifier?: string | number): Promise<string> {
    try {
-      const result = await executeIPCCommand({ command: 'plugin:mcp-bridge|get_window_info', appIdentifier });
+      const result = await executeIPCCommand({ command: 'plugin:hushlor-mcp-bridge|get_window_info', appIdentifier });
 
       const parsed = JSON.parse(result);
 
@@ -252,7 +252,7 @@ export async function getBackendState(options: {
 
          const response = await client.sendCommand({
             command: 'invoke_tauri',
-            args: { command: 'plugin:mcp-bridge|get_backend_state', args: {} },
+            args: { command: 'plugin:hushlor-mcp-bridge|get_backend_state', args: {} },
          });
 
          if (!response.success) {
@@ -263,7 +263,7 @@ export async function getBackendState(options: {
       }
 
       // Normal mode: use executeIPCCommand which validates session
-      const result = await executeIPCCommand({ command: 'plugin:mcp-bridge|get_backend_state', appIdentifier });
+      const result = await executeIPCCommand({ command: 'plugin:hushlor-mcp-bridge|get_backend_state', appIdentifier });
 
       const parsed = JSON.parse(result);
 

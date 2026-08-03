@@ -14,7 +14,7 @@ fn get_config() -> serde_json::Value {
     serde_json::json!({
         "app_name": "test-app",
         "version": "0.1.0",
-        "features": ["devtools", "mcp-bridge"]
+        "features": ["devtools", "hushlor-mcp-bridge"]
     })
 }
 

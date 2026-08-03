@@ -19,7 +19,7 @@ agent skills directly into Claude Code without manual file editing.
 In Claude Code, run:
 
 ```
-/plugin marketplace add hypothesi/mcp-server-tauri
+/plugin marketplace add Hushlor/mcp-server-tauri
 ```
 
 ### 2. Install the plugin
@@ -88,7 +88,7 @@ If you prefer not to use the plugin system:
 
 - **[Agent Skills via `npx skills`](/guides/agent-skills)** — works with 40+ agents, not
   just Claude Code
-- **[CLI direct install](/guides/cli)** — `npm i -g @hypothesi/tauri-mcp-cli`
+- **[CLI direct install](/guides/cli)** — `npm i -g @hushlor/tauri-mcp-cli`
 
 ## Further Reading
 

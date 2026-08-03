@@ -1,4 +1,4 @@
-/src/main/java/com/hypothesi/test_app/generated
+/src/main/java/com/hushlor/tauri_mcp_test_app/generated
 /src/main/jniLibs/**/*.so
 /src/main/assets/tauri.conf.json
 /tauri.build.gradle.kts

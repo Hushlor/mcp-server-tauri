@@ -18,7 +18,7 @@ hero:
       link: /guides/getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/hypothesi/mcp-server-tauri
+      link: https://github.com/Hushlor/mcp-server-tauri
 ---
 
 <script setup>
@@ -56,7 +56,7 @@ This is an **unofficial** community project, independently developed to enhance 
 <div class="tool-categories">
    <div class="tool-category">
       <Terminal :size="20" :stroke-width="2" class="category-icon" />
-      <div><strong>CLI</strong> — <code>npm i -g @hypothesi/tauri-mcp-cli</code> and call tools directly from your terminal, scripts, or CI. Ships <a :href="withBase('/guides/agent-skills')">Agent Skills</a> so coding agents learn correct usage automatically.</div>
+      <div><strong>CLI</strong> — <code>npm i -g @hushlor/tauri-mcp-cli</code> and call tools directly from your terminal, scripts, or CI. Ships <a :href="withBase('/guides/agent-skills')">Agent Skills</a> so coding agents learn correct usage automatically.</div>
    </div>
    <div class="tool-category">
       <Puzzle :size="20" :stroke-width="2" class="category-icon" />
@@ -77,10 +77,10 @@ This is an **unofficial** community project, independently developed to enhance 
 Add the Rust crate (from your `src-tauri` directory):
 
 ```bash
-cargo add tauri-plugin-mcp-bridge
+cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.13.0
 ```
 
-Or manually add to `Cargo.toml`: <code>tauri-plugin-mcp-bridge = "{{ versions.plugin.cargo }}"</code>
+Or manually add to `Cargo.toml`: <code>tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "{{ versions.plugin.full }}" }</code>
 
 Register in `src-tauri/src/main.rs`:
 
@@ -114,7 +114,7 @@ This exposes `window.__TAURI__` which the MCP bridge plugin requires to communic
 :::
 
 ::: tip Optional: TypeScript Bindings
-The npm package `@hypothesi/tauri-plugin-mcp-bridge` is **optional**. It provides TypeScript bindings if you want to call the plugin from your app's frontend code. The MCP server communicates with the Rust plugin directly via WebSocket—no npm package needed.
+The npm package `@hushlor/tauri-plugin-mcp-bridge` is **optional**. It provides TypeScript bindings if you want to call the plugin from your app's frontend code. The MCP server communicates with the Rust plugin directly via WebSocket—no npm package needed.
 :::
 
 ### 3. Configure Your AI Assistant
@@ -122,7 +122,7 @@ The npm package `@hypothesi/tauri-plugin-mcp-bridge` is **optional**. It provide
 Use [aix](https://aix.a1st.dev/cli/add/#aix-add-mcp) to add the server to your AI assistant:
 
 ```bash
-npx -y @a1st/aix add mcp tauri --command 'npx @hypothesi/tauri-mcp-server' --user
+npx -y @a1st/aix add mcp tauri --command 'npx @hushlor/tauri-mcp-server' --user
 ```
 
 Supported clients: `claude-code`, `cursor`, `windsurf`, `vscode`, `cline`, `roo-cline`, `claude`, `zed`, `goose`, `warp`, `codex`
@@ -137,7 +137,7 @@ If you prefer to configure manually, add to your MCP config:
   "mcpServers": {
     "tauri": {
       "command": "npx",
-      "args": ["-y", "@hypothesi/tauri-mcp-server"]
+      "args": ["-y", "@hushlor/tauri-mcp-server"]
     }
   }
 }
@@ -156,7 +156,7 @@ If you prefer to configure manually, add to your MCP config:
 
 The MCP server communicates with your Tauri application through:
 
-- **Plugin Client (WebSocket port 9223)** - Native IPC for UI automation, DOM interaction, and direct commands via mcp-bridge plugin
+- **Plugin Client (WebSocket port 9223)** - Native IPC for UI automation, DOM interaction, and direct commands via hushlor-mcp-bridge plugin
 
 ## Slash Commands (Prompts)
 

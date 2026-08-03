@@ -512,7 +512,7 @@ async function fetchAppMetadata(
    try {
       const response = await client.sendCommand({
          command: 'invoke_tauri',
-         args: { command: 'plugin:mcp-bridge|get_backend_state', args: {} },
+         args: { command: 'plugin:hushlor-mcp-bridge|get_backend_state', args: {} },
       });
 
       if (!response.success || !response.data) {

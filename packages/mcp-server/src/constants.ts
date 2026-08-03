@@ -25,7 +25,7 @@ Examine these files and report what needs to be added or updated:
 Check \`src-tauri/Cargo.toml\` for \`tauri-plugin-mcp-bridge\`. If missing or outdated, note that it needs:
 \`\`\`toml
 [dependencies]
-tauri-plugin-mcp-bridge = "${PLUGIN_VERSION_CARGO}"
+tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "${PLUGIN_VERSION_CARGO}" }
 \`\`\`
 
 ### 2. Plugin Registration
@@ -42,7 +42,7 @@ Check \`src-tauri/tauri.conf.json\` for \`withGlobalTauri: true\` under the \`ap
 **This is required** - without it, the MCP bridge cannot communicate with the webview.
 
 ### 4. Plugin Permissions
-Check \`src-tauri/capabilities/default.json\` (or similar) for \`"mcp-bridge:default"\` permission.
+Check \`src-tauri/capabilities/default.json\` (or similar) for \`"hushlor-mcp-bridge:default"\` permission.
 
 ## Your Response Format
 

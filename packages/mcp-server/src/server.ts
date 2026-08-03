@@ -27,12 +27,23 @@ export interface CliToolDefinition {
    inputSchema: Record<string, unknown>;
 }
 
+type ToolInputSchema = Record<string, unknown> & { type: 'object' };
+
+function toToolInputSchema(schema: Parameters<typeof zodToJsonSchema>[0]): ToolInputSchema {
+   const generatedSchema = zodToJsonSchema(schema) as Record<string, unknown>;
+
+   return {
+      ...generatedSchema,
+      type: 'object',
+   };
+}
+
 export function getCliToolDefinitions(): CliToolDefinition[] {
    return TOOLS.map((tool) => {
       return {
          name: tool.name,
          description: tool.description,
-         inputSchema: zodToJsonSchema(tool.schema) as Record<string, unknown>,
+         inputSchema: toToolInputSchema(tool.schema),
       };
    });
 }
@@ -91,7 +102,7 @@ export function createMcpServer(info: McpServerInfo): Server {
             return {
                name: tool.name,
                description: tool.description,
-               inputSchema: zodToJsonSchema(tool.schema) as Record<string, unknown>,
+               inputSchema: toToolInputSchema(tool.schema),
                annotations: tool.annotations,
             };
          }),

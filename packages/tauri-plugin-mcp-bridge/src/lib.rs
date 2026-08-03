@@ -48,13 +48,13 @@
 //! ```typescript
 //! import { invoke } from '@tauri-apps/api/core';
 //!
-//! await invoke('plugin:mcp-bridge|start_ipc_monitor');
+//! await invoke('plugin:hushlor-mcp-bridge|start_ipc_monitor');
 //! ```
 //!
 //! ### Get Window Information
 //!
 //! ```typescript
-//! const info = await invoke('plugin:mcp-bridge|get_window_info');
+//! const info = await invoke('plugin:hushlor-mcp-bridge|get_window_info');
 //! console.log(info); // { width, height, x, y, title, focused, visible }
 //! ```
 //!
@@ -159,7 +159,7 @@ pub fn init_with_config<R: Runtime>(config: Config) -> TauriPlugin<R> {
     let bind_address = config.bind_address.clone();
     let base_port = config.base_port;
 
-    PluginBuilder::<R>::new("mcp-bridge")
+    PluginBuilder::<R>::new("hushlor-mcp-bridge")
         .invoke_handler(tauri::generate_handler![
             commands::execute_command::execute_command,
             commands::window_info::get_window_info,

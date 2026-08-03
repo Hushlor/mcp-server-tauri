@@ -1,11 +1,13 @@
-# @hypothesi/tauri-mcp-server
+# @hushlor/tauri-mcp-server
 
-[![npm version](https://img.shields.io/npm/v/@hypothesi/tauri-mcp-server)](https://www.npmjs.com/package/@hypothesi/tauri-mcp-server)
-[![License: MIT](https://img.shields.io/badge/License-MIT-8b5cf6.svg)](https://github.com/hypothesi/mcp-server-tauri/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/@hushlor/tauri-mcp-server)](https://www.npmjs.com/package/@hushlor/tauri-mcp-server)
+[![License: MIT](https://img.shields.io/badge/License-MIT-8b5cf6.svg)](https://github.com/Hushlor/mcp-server-tauri/blob/main/LICENSE)
 
 A **Model Context Protocol (MCP) server** that enables AI assistants like Claude, Cursor, and Windsurf to build, test, and debug Tauri® v2 applications.
 
-📖 **[Full Documentation](https://hypothesi.github.io/mcp-server-tauri)**
+📖 **[Full Documentation](https://hushlor.github.io/mcp-server-tauri/)**
+
+> **Independent downstream fork:** Hushlor maintains this distribution independently of [hypothesi/mcp-server-tauri](https://github.com/hypothesi/mcp-server-tauri), preserving the upstream MIT license and attribution.
 
 ## Features
 
@@ -21,7 +23,7 @@ A **Model Context Protocol (MCP) server** that enables AI assistants like Claude
 ### 1. Add the MCP Bridge Plugin to Your Tauri App
 
 ```bash
-cargo add tauri-plugin-mcp-bridge
+cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.13.0
 ```
 
 ```rust
@@ -40,14 +42,14 @@ fn main() {
 }
 ```
 
-> **Note:** The npm package `@hypothesi/tauri-plugin-mcp-bridge` is **optional**—only needed if you want to call the plugin from your app's frontend code. The MCP server communicates with the Rust plugin directly via WebSocket.
+> **Note:** The npm package `@hushlor/tauri-plugin-mcp-bridge` is **optional**—only needed if you want to call the plugin from your app's frontend code. The MCP server communicates with the Rust plugin directly via WebSocket.
 
 ### 2. Configure Your AI Assistant
 
 Use [aix](https://aix.a1st.dev/cli/add/#aix-add-mcp) to add the server to your AI assistant:
 
 ```bash
-npx -y @a1st/aix add mcp tauri --command 'npx @hypothesi/tauri-mcp-server' --user
+npx -y @a1st/aix add mcp tauri --command 'npx @hushlor/tauri-mcp-server' --user
 ```
 
 Supported clients: `claude-code`, `cursor`, `windsurf`, `vscode`, `cline`, `roo-cline`, `claude`, `zed`, `goose`, `warp`, `codex`
@@ -57,7 +59,7 @@ Supported clients: `claude-code`, `cursor`, `windsurf`, `vscode`, `cline`, `roo-
 If you want to call the same tools directly from a shell, install the companion CLI package:
 
 ```bash
-npm install -g @hypothesi/tauri-mcp-cli
+npm install -g @hushlor/tauri-mcp-cli
 tauri-mcp driver-session start --port 9223
 tauri-mcp driver-session status --json
 ```
@@ -144,14 +146,14 @@ await driver_session({ action: "stop" })
 
 ## Links
 
-- [Documentation](https://hypothesi.github.io/mcp-server-tauri)
-- [GitHub Repository](https://github.com/hypothesi/mcp-server-tauri)
-- [MCP Bridge Plugin (crates.io)](https://crates.io/crates/tauri-plugin-mcp-bridge)
-- [Changelog](https://github.com/hypothesi/mcp-server-tauri/blob/main/packages/mcp-server/CHANGELOG.md)
+- [Documentation](https://hushlor.github.io/mcp-server-tauri/)
+- [GitHub Repository](https://github.com/Hushlor/mcp-server-tauri)
+- [MCP Bridge Plugin (crates.io)](https://crates.io/crates/tauri-plugin-hushlor-mcp-bridge)
+- [Changelog](https://github.com/Hushlor/mcp-server-tauri/blob/main/packages/mcp-server/CHANGELOG.md)
 
 ## License
 
-MIT © [hypothesi](https://github.com/hypothesi)
+MIT © Hushlor. Original upstream copyright and attribution are preserved in the package [LICENSE](./LICENSE); see [hypothesi/mcp-server-tauri](https://github.com/hypothesi/mcp-server-tauri) for provenance.
 
 ---
 

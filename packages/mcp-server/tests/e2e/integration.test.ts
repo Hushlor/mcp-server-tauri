@@ -15,7 +15,7 @@ describe('Integration Tests', () => {
          const configObj = JSON.parse(config);
 
          expect(configObj.productName).toBe('test-app');
-         expect(configObj.identifier).toBe('com.hypothesi.test-app');
+         expect(configObj.identifier).toBe('com.hushlor.tauri-mcp-test-app');
          expect(configObj.app?.windows?.[0]?.title).toBe('test-app');
       });
    });

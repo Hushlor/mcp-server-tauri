@@ -1,6 +1,6 @@
 {
-   "name": "@hypothesi/tauri-mcp-cli",
-   "version": "0.12.0",
+   "name": "@hushlor/tauri-mcp-cli",
+   "version": "0.13.0",
    "description": "CLI wrapper for calling the Tauri MCP server tools directly from the terminal",
    "type": "module",
    "main": "./dist/index.js",
@@ -19,7 +19,7 @@
    },
    "repository": {
       "type": "git",
-      "url": "https://github.com/hypothesi/mcp-server-tauri.git",
+      "url": "https://github.com/Hushlor/mcp-server-tauri.git",
       "directory": "packages/cli"
    },
    "files": [
@@ -34,7 +34,7 @@
       "GEMINI.md",
       "bin"
    ],
-   "author": "hypothesi",
+   "author": "Hushlor",
    "license": "MIT",
    "keywords": [
       "mcp",
@@ -46,7 +46,7 @@
       "tanstack-intent"
    ],
    "dependencies": {
-      "@hypothesi/tauri-mcp-server": "0.12.0",
+      "@hushlor/tauri-mcp-server": "0.13.0",
       "commander": "14.0.2",
       "mcporter": "0.7.3"
    },

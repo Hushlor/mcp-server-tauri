@@ -7,14 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.13.0] - 2026-08-03
+
 ### Added
-- Add `native_dialog_snapshot` and `native_dialog_interact` MCP tools for semantic Windows native-dialog automation, including multiple paths, folder pickers, navigation controls, and nested confirmations.
+- Integrated the Windows native dialog snapshot/interact tools from PR #39.
+
+### Changed
+- Rebranded the server as `@hushlor/tauri-mcp-server` with `io.github.hushlor/mcp-server-tauri` registry metadata and independent Hushlor release automation.
 
 ### Fixed
-- Keep bridge WebSockets alive with ping/pong heartbeats and reconnect stale cached sessions when `driver_session start` is called again.
-- Replace Unix-only asset-copy and permission commands with cross-platform Node-based dist preparation.
-
-- Replace Unix-only asset-copy and permission commands with cross-platform Node-based dist preparation.
+- Integrated WebSocket origin validation (#38), console log line limits (#40), stale-session heartbeat recovery (#42), and cross-platform Node dist preparation (#44).
+- Pinned `@modelcontextprotocol/sdk` v1 to `1.30.0` and `ws` to `8.21.1`, and refreshed vulnerable runtime transitive dependencies.
+- Normalized union tool schemas for SDK v1 `tools/list` clients while preserving all alternatives.
 
 ## [0.12.0] - 2026-07-05
 

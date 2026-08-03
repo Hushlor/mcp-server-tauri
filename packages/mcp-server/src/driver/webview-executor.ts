@@ -18,7 +18,7 @@ import { getResolveRefSource, RESOLVE_REF_SCRIPT_ID } from './scripts/index.js';
  * enabling cross-platform support (Linux, Windows, macOS) without external dependencies.
  *
  * Communication flow:
- * MCP Server (Node.js) → plugin-client (WebSocket) → hushlor-mcp-bridge plugin
+ * MCP Server (Node.js) → plugin-client (WebSocket) → mcp-bridge plugin
  * → Tauri Webview
  */
 

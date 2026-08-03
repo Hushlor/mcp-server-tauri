@@ -18,14 +18,14 @@ The MCP Bridge plugin extends MCP servers with direct access to Tauri internals.
 ## Installation
 
 ```bash
-cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.13.0
+cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.14.0
 ```
 
 Or add manually to your `src-tauri/Cargo.toml`:
 
 ```toml
 [dependencies]
-tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "0.13.0" }
+tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "0.14.0" }
 ```
 
 ### Optional: TypeScript Bindings
@@ -85,13 +85,13 @@ Monitor all Tauri IPC calls in real-time with timing and argument capture:
 
 ```typescript
 // Start monitoring
-await invoke('plugin:hushlor-mcp-bridge|start_ipc_monitor');
+await invoke('plugin:mcp-bridge|start_ipc_monitor');
 
 // Execute some commands to generate IPC traffic
 await invoke('greet', { name: 'World' });
 
 // Get captured events
-const events = await invoke('plugin:hushlor-mcp-bridge|get_ipc_events');
+const events = await invoke('plugin:mcp-bridge|get_ipc_events');
 ```
 
 ### 2. Window Information
@@ -99,7 +99,7 @@ const events = await invoke('plugin:hushlor-mcp-bridge|get_ipc_events');
 Get detailed window state:
 
 ```typescript
-const windowInfo = await invoke('plugin:hushlor-mcp-bridge|get_window_info');
+const windowInfo = await invoke('plugin:mcp-bridge|get_window_info');
 // Returns: { width, height, x, y, title, focused, visible }
 ```
 
@@ -108,7 +108,7 @@ const windowInfo = await invoke('plugin:hushlor-mcp-bridge|get_window_info');
 Inspect application backend state:
 
 ```typescript
-const state = await invoke('plugin:hushlor-mcp-bridge|get_backend_state');
+const state = await invoke('plugin:mcp-bridge|get_backend_state');
 // Returns: { app: { name, identifier, version }, tauri: { version },
 //            environment: { debug, os, arch, family }, windows: [...], timestamp }
 ```
@@ -118,7 +118,7 @@ const state = await invoke('plugin:hushlor-mcp-bridge|get_backend_state');
 Trigger custom events for testing:
 
 ```typescript
-await invoke('plugin:hushlor-mcp-bridge|emit_event', {
+await invoke('plugin:mcp-bridge|emit_event', {
   eventName: 'custom-event',
   payload: { data: 'test' }
 });
@@ -173,7 +173,7 @@ MCP Server (Node.js)
     └── Plugin Client ──────────────────────┼──> Plugin Commands
          (WebSocket port 9223)              │
                                             │
-                                      hushlor-mcp-bridge Plugin
+                                      mcp-bridge Plugin
                                       (Rust Backend)
 ```
 
@@ -256,7 +256,7 @@ Add the plugin's default permission to your Tauri capabilities file (`src-tauri/
 ```json
 {
   "permissions": [
-    "hushlor-mcp-bridge:default"
+    "mcp-bridge:default"
   ]
 }
 ```

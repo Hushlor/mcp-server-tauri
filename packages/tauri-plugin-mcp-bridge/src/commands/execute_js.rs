@@ -246,7 +246,7 @@ async fn eval_with_ipc_callback<R: Runtime>(
             function __sendResult(success, data, error) {{
                 try {{
                     if (window.__TAURI__ && window.__TAURI__.core && window.__TAURI__.core.invoke) {{
-                        window.__TAURI__.core.invoke('plugin:hushlor-mcp-bridge|script_result', {{
+                        window.__TAURI__.core.invoke('plugin:mcp-bridge|script_result', {{
                             execId: '{exec_id}',
                             success: success,
                             data: data !== undefined ? data : null,

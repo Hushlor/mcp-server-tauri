@@ -24,7 +24,7 @@ use tauri::{command, AppHandle, Runtime};
 /// ```typescript
 /// import { invoke } from '@tauri-apps/api/core';
 ///
-/// const result = await invoke('plugin:hushlor-mcp-bridge|execute_command', {
+/// const result = await invoke('plugin:mcp-bridge|execute_command', {
 ///   command: 'greet',
 ///   args: { name: 'World' }
 /// });

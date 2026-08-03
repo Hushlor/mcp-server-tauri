@@ -28,47 +28,47 @@ export interface IPCEvent {
  * Execute an arbitrary Tauri command
  */
 export async function executeCommand(command: string, args?: unknown): Promise<unknown> {
-   return await invoke('plugin:hushlor-mcp-bridge|execute_command', { command, args });
+   return await invoke('plugin:mcp-bridge|execute_command', { command, args });
 }
 
 /**
  * Get information about the current window
  */
 export async function getWindowInfo(): Promise<WindowInfo> {
-   return await invoke('plugin:hushlor-mcp-bridge|get_window_info');
+   return await invoke('plugin:mcp-bridge|get_window_info');
 }
 
 /**
  * Get backend application state
  */
 export async function getBackendState(): Promise<BackendState> {
-   return await invoke('plugin:hushlor-mcp-bridge|get_backend_state');
+   return await invoke('plugin:mcp-bridge|get_backend_state');
 }
 
 /**
  * Emit a custom event for testing
  */
 export async function emitEvent(eventName: string, payload?: unknown): Promise<string> {
-   return await invoke('plugin:hushlor-mcp-bridge|emit_event', { eventName, payload });
+   return await invoke('plugin:mcp-bridge|emit_event', { eventName, payload });
 }
 
 /**
  * Start IPC monitoring - captures all invoke() calls
  */
 export async function startIPCMonitor(): Promise<string> {
-   return await invoke('plugin:hushlor-mcp-bridge|start_ipc_monitor');
+   return await invoke('plugin:mcp-bridge|start_ipc_monitor');
 }
 
 /**
  * Stop IPC monitoring
  */
 export async function stopIPCMonitor(): Promise<string> {
-   return await invoke('plugin:hushlor-mcp-bridge|stop_ipc_monitor');
+   return await invoke('plugin:mcp-bridge|stop_ipc_monitor');
 }
 
 /**
  * Get all captured IPC events
  */
 export async function getIPCEvents(): Promise<IPCEvent[]> {
-   return await invoke('plugin:hushlor-mcp-bridge|get_ipc_events');
+   return await invoke('plugin:mcp-bridge|get_ipc_events');
 }

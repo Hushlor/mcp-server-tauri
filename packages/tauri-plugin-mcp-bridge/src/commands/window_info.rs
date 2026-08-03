@@ -29,7 +29,7 @@ use tauri::{command, Runtime, WebviewWindow};
 /// ```typescript
 /// import { invoke } from '@tauri-apps/api/core';
 ///
-/// const info = await invoke('plugin:hushlor-mcp-bridge|get_window_info');
+/// const info = await invoke('plugin:mcp-bridge|get_window_info');
 /// console.log(`Window size: ${info.width}x${info.height}`);
 /// ```
 #[command]

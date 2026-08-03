@@ -31,7 +31,7 @@ use tauri::{command, AppHandle, Emitter, Runtime};
 /// });
 ///
 /// // Emit event
-/// await invoke('plugin:hushlor-mcp-bridge|emit_event', {
+/// await invoke('plugin:mcp-bridge|emit_event', {
 ///   eventName: 'custom-event',
 ///   payload: { data: 'test' }
 /// });

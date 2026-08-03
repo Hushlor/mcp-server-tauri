@@ -6,7 +6,7 @@
   },
   "metadata": {
     "description": "Agent skills for automating and testing Tauri v2 applications using the MCP server.",
-      "version": "0.13.0"
+      "version": "0.14.0"
   },
   "plugins": [
     {

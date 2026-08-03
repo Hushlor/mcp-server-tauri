@@ -20,7 +20,7 @@ Use this skill for the entire CLI workflow. The package intentionally ships a si
 ## Prerequisites
 
 - The app is running in development mode, usually with `cargo tauri dev`.
-- The `tauri-plugin-hushlor-mcp-bridge` plugin is installed and registered (under the source alias `tauri-plugin-mcp-bridge`).
+- The Hushlor-distributed `tauri-plugin-hushlor-mcp-bridge` plugin is installed and registered as the official `mcp-bridge` plugin (under the source alias `tauri-plugin-mcp-bridge`).
 - `src-tauri/tauri.conf.json` sets `withGlobalTauri: true`.
 
 ## Core Rule

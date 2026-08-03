@@ -1,6 +1,6 @@
 ## Default Permission
 
-Default permissions for Hushlor MCP Bridge plugin
+Default permissions for MCP Bridge plugin
 
 #### This default permission set includes the following:
 
@@ -30,7 +30,7 @@ Default permissions for Hushlor MCP Bridge plugin
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-capture-native-screenshot`
+`mcp-bridge:allow-capture-native-screenshot`
 
 </td>
 <td>
@@ -43,7 +43,7 @@ Enables the capture_native_screenshot command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-capture-native-screenshot`
+`mcp-bridge:deny-capture-native-screenshot`
 
 </td>
 <td>
@@ -56,7 +56,7 @@ Denies the capture_native_screenshot command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-emit-event`
+`mcp-bridge:allow-emit-event`
 
 </td>
 <td>
@@ -69,7 +69,7 @@ Enables the emit_event command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-emit-event`
+`mcp-bridge:deny-emit-event`
 
 </td>
 <td>
@@ -82,7 +82,7 @@ Denies the emit_event command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-execute-command`
+`mcp-bridge:allow-execute-command`
 
 </td>
 <td>
@@ -95,7 +95,7 @@ Enables the execute_command command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-execute-command`
+`mcp-bridge:deny-execute-command`
 
 </td>
 <td>
@@ -108,7 +108,7 @@ Denies the execute_command command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-execute-js`
+`mcp-bridge:allow-execute-js`
 
 </td>
 <td>
@@ -121,7 +121,7 @@ Enables the execute_js command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-execute-js`
+`mcp-bridge:deny-execute-js`
 
 </td>
 <td>
@@ -134,7 +134,7 @@ Denies the execute_js command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-get-backend-state`
+`mcp-bridge:allow-get-backend-state`
 
 </td>
 <td>
@@ -147,7 +147,7 @@ Enables the get_backend_state command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-get-backend-state`
+`mcp-bridge:deny-get-backend-state`
 
 </td>
 <td>
@@ -160,7 +160,7 @@ Denies the get_backend_state command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-get-ipc-events`
+`mcp-bridge:allow-get-ipc-events`
 
 </td>
 <td>
@@ -173,7 +173,7 @@ Enables the get_ipc_events command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-get-ipc-events`
+`mcp-bridge:deny-get-ipc-events`
 
 </td>
 <td>
@@ -186,7 +186,7 @@ Denies the get_ipc_events command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-get-window-info`
+`mcp-bridge:allow-get-window-info`
 
 </td>
 <td>
@@ -199,7 +199,7 @@ Enables the get_window_info command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-get-window-info`
+`mcp-bridge:deny-get-window-info`
 
 </td>
 <td>
@@ -212,7 +212,7 @@ Denies the get_window_info command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-list-windows`
+`mcp-bridge:allow-list-windows`
 
 </td>
 <td>
@@ -225,7 +225,7 @@ Enables the list_windows command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-list-windows`
+`mcp-bridge:deny-list-windows`
 
 </td>
 <td>
@@ -238,7 +238,7 @@ Denies the list_windows command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-report-ipc-event`
+`mcp-bridge:allow-report-ipc-event`
 
 </td>
 <td>
@@ -251,7 +251,7 @@ Enables the report_ipc_event command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-report-ipc-event`
+`mcp-bridge:deny-report-ipc-event`
 
 </td>
 <td>
@@ -264,7 +264,7 @@ Denies the report_ipc_event command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-request-script-injection`
+`mcp-bridge:allow-request-script-injection`
 
 </td>
 <td>
@@ -277,7 +277,7 @@ Enables the request_script_injection command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-request-script-injection`
+`mcp-bridge:deny-request-script-injection`
 
 </td>
 <td>
@@ -290,7 +290,7 @@ Denies the request_script_injection command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-script-result`
+`mcp-bridge:allow-script-result`
 
 </td>
 <td>
@@ -303,7 +303,7 @@ Enables the script_result command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-script-result`
+`mcp-bridge:deny-script-result`
 
 </td>
 <td>
@@ -316,7 +316,7 @@ Denies the script_result command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-start-ipc-monitor`
+`mcp-bridge:allow-start-ipc-monitor`
 
 </td>
 <td>
@@ -329,7 +329,7 @@ Enables the start_ipc_monitor command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-start-ipc-monitor`
+`mcp-bridge:deny-start-ipc-monitor`
 
 </td>
 <td>
@@ -342,7 +342,7 @@ Denies the start_ipc_monitor command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:allow-stop-ipc-monitor`
+`mcp-bridge:allow-stop-ipc-monitor`
 
 </td>
 <td>
@@ -355,7 +355,7 @@ Enables the stop_ipc_monitor command without any pre-configured scope.
 <tr>
 <td>
 
-`hushlor-mcp-bridge:deny-stop-ipc-monitor`
+`mcp-bridge:deny-stop-ipc-monitor`
 
 </td>
 <td>

@@ -1,7 +1,7 @@
 "$schema" = "schemas/schema.json"
 
 [default]
-description = "Default permissions for Hushlor MCP Bridge plugin"
+description = "Default permissions for MCP Bridge plugin"
 permissions = [
   "allow-capture-native-screenshot",
   "allow-emit-event",

@@ -1,6 +1,6 @@
 [package]
 name = "tauri-plugin-hushlor-mcp-bridge"
-version = "0.13.0"
+version = "0.14.0"
 description = "MCP Bridge plugin for use with Tauri applications - enables IPC monitoring and backend inspection"
 authors = ["Hushlor"]
 edition = "2021"
@@ -12,7 +12,7 @@ homepage = "https://hushlor.github.io/mcp-server-tauri/"
 readme = "README.md"
 keywords = ["tauri", "tauri-plugin", "mcp", "ipc", "monitoring"]
 categories = ["api-bindings", "development-tools"]
-links = "tauri-plugin-hushlor-mcp-bridge"
+links = "tauri-plugin-mcp-bridge"
 
 [package.metadata.docs.rs]
 all-features = true

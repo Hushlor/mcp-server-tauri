@@ -33,7 +33,7 @@ jobs:
           import { readFileSync } from 'node:fs';
           const packageJson = JSON.parse(readFileSync('package.json', 'utf8'));
           const serverJson = JSON.parse(readFileSync('server.json', 'utf8'));
-          if (packageJson.name !== '@hushlor/tauri-mcp-server' || serverJson.name !== 'io.github.hushlor/mcp-server-tauri' || serverJson.packages?.[0]?.identifier !== packageJson.name || serverJson.version !== packageJson.version || serverJson.packages?.[0]?.version !== packageJson.version) {
+          if (packageJson.name !== '@hushlor/tauri-mcp-server' || serverJson.name !== 'io.github.Hushlor/mcp-server-tauri' || serverJson.packages?.[0]?.identifier !== packageJson.name || serverJson.version !== packageJson.version || serverJson.packages?.[0]?.version !== packageJson.version) {
             throw new Error('Committed server.json does not match the Hushlor server package');
           }
           NODE

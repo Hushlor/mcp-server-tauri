@@ -52,7 +52,7 @@ Check \`src-tauri/tauri.conf.json\` for \`withGlobalTauri: true\` under the \`ap
 **This is required** - without it, the MCP bridge cannot communicate with the webview.
 
 ### 4. Plugin Permissions
-Check \`src-tauri/capabilities/default.json\` (or similar) for \`"hushlor-mcp-bridge:default"\` permission.
+Check \`src-tauri/capabilities/default.json\` (or similar) for \`"mcp-bridge:default"\` permission.
 
 ## Your Response Format
 
@@ -193,7 +193,7 @@ The copied text contains step-by-step instructions for:
 From your `src-tauri` directory:
 
 ```bash
-cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.13.0
+cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.14.0
 ```
 
 Or manually add to `Cargo.toml`: <code>tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "{{ versions.plugin.full }}" }</code>
@@ -239,7 +239,7 @@ Add to `src-tauri/capabilities/default.json`:
 ```json
 {
   "permissions": [
-    "hushlor-mcp-bridge:default"
+    "mcp-bridge:default"
   ]
 }
 ```
@@ -306,7 +306,7 @@ If the AI can't connect to your Tauri app:
 
 1. Make sure your app is running (`cargo tauri dev`)
 2. Verify `withGlobalTauri` is enabled in `tauri.conf.json`
-3. Check that `hushlor-mcp-bridge:default` permission is added
+3. Check that `mcp-bridge:default` permission is added
 4. Look for WebSocket errors in your app's console (port 9223)
 
 ### Need Help?

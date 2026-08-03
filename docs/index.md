@@ -77,7 +77,7 @@ This is an **unofficial** community project, independently developed to enhance 
 Add the Rust crate (from your `src-tauri` directory):
 
 ```bash
-cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.13.0
+cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.14.0
 ```
 
 Or manually add to `Cargo.toml`: <code>tauri-plugin-mcp-bridge = { package = "tauri-plugin-hushlor-mcp-bridge", version = "{{ versions.plugin.full }}" }</code>
@@ -156,7 +156,7 @@ If you prefer to configure manually, add to your MCP config:
 
 The MCP server communicates with your Tauri application through:
 
-- **Plugin Client (WebSocket port 9223)** - Native IPC for UI automation, DOM interaction, and direct commands via hushlor-mcp-bridge plugin
+- **Plugin Client (WebSocket port 9223)** - Native IPC for UI automation, DOM interaction, and direct commands via mcp-bridge plugin
 
 ## Slash Commands (Prompts)
 

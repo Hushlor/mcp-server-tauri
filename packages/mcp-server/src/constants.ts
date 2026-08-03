@@ -42,7 +42,7 @@ Check \`src-tauri/tauri.conf.json\` for \`withGlobalTauri: true\` under the \`ap
 **This is required** - without it, the MCP bridge cannot communicate with the webview.
 
 ### 4. Plugin Permissions
-Check \`src-tauri/capabilities/default.json\` (or similar) for \`"hushlor-mcp-bridge:default"\` permission.
+Check \`src-tauri/capabilities/default.json\` (or similar) for \`"mcp-bridge:default"\` permission.
 
 ## Your Response Format
 

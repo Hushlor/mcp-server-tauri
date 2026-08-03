@@ -12,4 +12,4 @@ For each package, open its npm **Access** page and add a GitHub Actions trusted 
 
 The package must be manually published once before npm can attach a trusted publisher to a brand-new name. After that bootstrap, releases use `npm publish --provenance` with the workflow's `id-token: write` permission.
 
-The renamed Rust crate uses a separate `CARGO_REGISTRY_TOKEN` repository secret. Keep that token scoped to publishing and rotate it periodically.
+The renamed Rust crate also uses Trusted Publishing. On crates.io, add a Trusted Publisher for repository `Hushlor/mcp-server-tauri` and workflow `release.yml`. The release workflow grants `id-token: write`, exchanges its OIDC identity for a short-lived crates.io token, and passes it to `cargo publish`; no long-lived `CARGO_REGISTRY_TOKEN` repository secret is required. The one-time local bootstrap helper may still use a local crates.io API token.

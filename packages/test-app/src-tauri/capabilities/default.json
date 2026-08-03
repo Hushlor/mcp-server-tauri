@@ -6,7 +6,7 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "hushlor-mcp-bridge:default",
+    "mcp-bridge:default",
     "dialog:default"
   ]
 }

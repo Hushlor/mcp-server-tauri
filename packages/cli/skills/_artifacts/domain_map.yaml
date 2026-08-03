@@ -95,7 +95,7 @@ skills:
         status: 'active'
         skills: ['tauri-mcp-cli']
       - mistake: 'Use IPC tools without an active bridge plugin'
-        mechanism: 'IPC commands require tauri-plugin-hushlor-mcp-bridge, even if the session can otherwise connect'
+        mechanism: 'IPC commands require the Hushlor-distributed plugin registered as mcp-bridge, even if the session can otherwise connect'
         wrong_pattern: |
           tauri-mcp ipc-get-backend-state --json
         correct_pattern: |

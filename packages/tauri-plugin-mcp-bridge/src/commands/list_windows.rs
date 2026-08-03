@@ -41,7 +41,7 @@ pub struct WindowInfo {
 /// ```typescript
 /// import { invoke } from '@tauri-apps/api/core';
 ///
-/// const windows = await invoke('plugin:hushlor-mcp-bridge|list_windows');
+/// const windows = await invoke('plugin:mcp-bridge|list_windows');
 /// console.log(`Found ${windows.length} windows`);
 /// ```
 #[command]

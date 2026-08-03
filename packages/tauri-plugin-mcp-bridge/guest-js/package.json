@@ -1,6 +1,6 @@
 {
   "name": "@hushlor/tauri-plugin-mcp-bridge",
-  "version": "0.13.0",
+  "version": "0.14.0",
   "description": "Guest bindings for MCP Bridge Tauri plugin",
   "type": "module",
   "main": "index.ts",

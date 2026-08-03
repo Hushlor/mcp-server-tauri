@@ -1,7 +1,7 @@
 //! Command handlers for the MCP Bridge plugin.
 //!
 //! This module provides Tauri command handlers that expose plugin functionality
-//! to the frontend via IPC. All commands are prefixed with `plugin:hushlor-mcp-bridge|`
+//! to the frontend via IPC. All commands are prefixed with `plugin:mcp-bridge|`
 //! when invoked from the frontend.
 
 // Individual command modules

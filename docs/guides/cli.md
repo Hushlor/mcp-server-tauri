@@ -18,7 +18,7 @@ npx @hushlor/tauri-mcp-cli <command>
 ## Prerequisites
 
 - A Tauri v2 app running in development mode (`cargo tauri dev`)
-- The `tauri-plugin-hushlor-mcp-bridge` plugin installed in the app (under the source alias `tauri-plugin-mcp-bridge`)
+- The Hushlor-distributed `tauri-plugin-hushlor-mcp-bridge` plugin installed in the app (under the source alias `tauri-plugin-mcp-bridge`); it registers the official `mcp-bridge` runtime identity
 - `withGlobalTauri: true` in `src-tauri/tauri.conf.json`
 
 ## Session Workflow

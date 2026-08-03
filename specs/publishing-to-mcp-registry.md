@@ -1,10 +1,10 @@
 # Publishing to the MCP Registry
 
-The Hushlor server is registered as `io.github.hushlor/mcp-server-tauri`. The CLI is npm-only and is not listed as a separate MCP server.
+The Hushlor server is registered as `io.github.Hushlor/mcp-server-tauri`. The CLI is npm-only and is not listed as a separate MCP server.
 
 ## Metadata
 
-`packages/mcp-server/package.json` and `packages/mcp-server/server.json` must contain the same committed `0.13.0` version, `@hushlor/tauri-mcp-server` identifier, Hushlor repository URL, and `io.github.hushlor/mcp-server-tauri` name. The release workflow verifies these values rather than generating them during publication.
+`packages/mcp-server/package.json` and `packages/mcp-server/server.json` must contain the same committed `0.14.0` version, `@hushlor/tauri-mcp-server` identifier, Hushlor repository URL, and `io.github.Hushlor/mcp-server-tauri` name. The release workflow verifies these values rather than generating them during publication.
 
 ## Automated publishing
 

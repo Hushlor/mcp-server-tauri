@@ -23,7 +23,7 @@ use tauri::{command, Runtime, State, WebviewWindow};
 /// ```typescript
 /// import { invoke } from '@tauri-apps/api/core';
 ///
-/// await invoke('plugin:hushlor-mcp-bridge|start_ipc_monitor');
+/// await invoke('plugin:mcp-bridge|start_ipc_monitor');
 /// // Now all IPC calls will be captured
 /// ```
 ///
@@ -64,8 +64,8 @@ pub async fn start_ipc_monitor<R: Runtime>(
 /// ```typescript
 /// import { invoke } from '@tauri-apps/api/core';
 ///
-/// await invoke('plugin:hushlor-mcp-bridge|stop_ipc_monitor');
-/// const events = await invoke('plugin:hushlor-mcp-bridge|get_ipc_events');
+/// await invoke('plugin:mcp-bridge|stop_ipc_monitor');
+/// const events = await invoke('plugin:mcp-bridge|get_ipc_events');
 /// console.log(`Captured ${events.length} events`);
 /// ```
 ///
@@ -106,9 +106,9 @@ pub async fn stop_ipc_monitor<R: Runtime>(
 /// ```typescript
 /// import { invoke } from '@tauri-apps/api/core';
 ///
-/// await invoke('plugin:hushlor-mcp-bridge|start_ipc_monitor');
+/// await invoke('plugin:mcp-bridge|start_ipc_monitor');
 /// // ... perform some IPC calls ...
-/// const events = await invoke('plugin:hushlor-mcp-bridge|get_ipc_events');
+/// const events = await invoke('plugin:mcp-bridge|get_ipc_events');
 ///
 /// events.forEach(event => {
 ///   console.log(`${event.command} took ${event.duration_ms}ms`);

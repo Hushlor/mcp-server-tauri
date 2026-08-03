@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
+## [0.14.0] - 2026-08-03
+
+### Fixed
+- Restored the official `mcp-bridge` runtime plugin, capability, and IPC identity while retaining Hushlor distribution coordinates, restoring drop-in compatibility with the official upstream distribution.
+
+### Migration
+- Consumers of the `0.13.0` Hushlor downstream preparation must replace `hushlor-mcp-bridge:default` with `mcp-bridge:default` and `plugin:hushlor-mcp-bridge|...` with `plugin:mcp-bridge|...`.
+- Consumers of the official distribution keep the existing runtime identity and configuration; only the package, crate, and repository coordinates change to the Hushlor distribution.
+
 ## [0.13.0] - 2026-08-03
 
 ### Added

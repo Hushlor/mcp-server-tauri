@@ -23,7 +23,7 @@ A **Model Context Protocol (MCP) server** that enables AI assistants like Claude
 ### 1. Add the MCP Bridge Plugin to Your Tauri App
 
 ```bash
-cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.13.0
+cargo add tauri-plugin-hushlor-mcp-bridge --rename tauri-plugin-mcp-bridge --version 0.14.0
 ```
 
 ```rust

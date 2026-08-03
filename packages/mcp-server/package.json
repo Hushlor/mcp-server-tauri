@@ -1,7 +1,7 @@
 {
   "name": "@hushlor/tauri-mcp-server",
-  "version": "0.13.0",
-  "mcpName": "io.github.hushlor/mcp-server-tauri",
+  "version": "0.14.0",
+  "mcpName": "io.github.Hushlor/mcp-server-tauri",
   "description": "A Model Context Protocol server for use with Tauri v2 applications",
   "type": "module",
   "main": "./dist/api.js",

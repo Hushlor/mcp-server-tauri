@@ -244,8 +244,8 @@ mcp-server-tauri/
 <summary><strong>Releasing</strong></summary>
 
 ```bash
-# Validate the coordinated bootstrap release locally (no publish/tag)
-node scripts/release-package.js 0.13.0 --dry-run
+# Validate the current coordinated release locally (no publish/tag)
+node scripts/release-package.js 0.14.0 --dry-run
 ```
 
 Publishing packages or creating and pushing tags requires explicit authorization. See [specs/releasing.md](./specs/releasing.md) for the bootstrap and coordinated release procedure.

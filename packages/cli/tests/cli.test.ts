@@ -6,6 +6,10 @@ import { getTestAppPort } from '../../mcp-server/tests/test-utils.js';
 
 const CLI_PATH = path.resolve(process.cwd(), 'dist/index.js');
 
+// Hosted Windows runners support app/session tests but do not guarantee desktop capture.
+// Keep screenshot coverage active locally.
+const IS_GITHUB_ACTIONS = process.env.GITHUB_ACTIONS === 'true';
+
 function runCli(args: string[]): ReturnType<typeof execa> {
    return execa('node', [ CLI_PATH, ...args ], {
       cwd: process.cwd(),
@@ -31,7 +35,7 @@ describe('tauri-mcp CLI', () => {
       await runCli([ 'driver-session', 'stop' ]);
    });
 
-   it('writes screenshot output to disk and reports the path in JSON mode', async () => {
+   it.skipIf(IS_GITHUB_ACTIONS)('writes screenshot output to disk and reports the path in JSON mode', async () => {
       const port = getTestAppPort(),
             outputPath = path.resolve(process.cwd(), 'tmp', 'cli-screenshot-test.png');
 

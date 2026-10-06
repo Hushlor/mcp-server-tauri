@@ -226,7 +226,15 @@ For real iOS/Android devices on the network:
 
 `native_dialog_snapshot` and `native_dialog_interact` automate native message, confirmation, single- or multi-file Open, folder selection, and Save dialogs. These windows are outside the webview DOM, so `webview_interact`, `webview_keyboard`, and `webview_screenshot` cannot inspect or control them.
 
-The tools require an active `driver_session` and an interactive Windows desktop. Discovery is restricted to visible dialogs in the connected Tauri process whose bounded owner chain leads back to the targeted Tauri window. This includes nested prompts such as a Save overwrite confirmation without exposing desktop-wide automation or dialogs from other applications. Windows toast notifications are not dialogs and are not supported.
+The tools require an active `driver_session` and an interactive Windows desktop. Discovery is restricted to visible dialogs whose bounded owner chain leads back to the targeted Tauri window and whose windows and UI Automation elements all belong to an authorized process. This includes nested prompts such as a Save overwrite confirmation without exposing desktop-wide automation or dialogs from other applications. Windows toast notifications are not dialogs and are not supported.
+
+Authorized processes are the connected Tauri process and the WebView2 browser process of the targeted window. WebView2 shows the picker for an HTML `<input type="file">` from its browser process (`msedgewebview2.exe`), so these dialogs are supported alongside dialogs created by Tauri itself (for example through `tauri-plugin-dialog`). The WebView2 process is identified by the PID reported by the targeted window's own `ICoreWebView2::BrowserProcessId`, re-read on every snapshot and interaction; process names and window titles are never trusted. Every element reference records the session, the Tauri window, the dialog window and the dialog's process, and all of them are revalidated immediately before each interaction.
+
+Assumptions and limitations of the WebView2 association:
+
+- Webviews that share a WebView2 environment (the default for windows of one Tauri app) share a browser process. Isolation between those windows comes from the owner chain: a dialog owned by another window is rejected.
+- Separate applications that deliberately share one WebView2 user data folder also share a browser process. A dialog from such an application is accepted only if it is also owned by the targeted Tauri window.
+- If the WebView2 PID cannot be read within one second, the request falls back to dialogs from the Tauri process only.
 
 ### native_dialog_snapshot
 

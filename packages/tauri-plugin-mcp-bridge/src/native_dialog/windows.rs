@@ -1,3 +1,6 @@
+use super::authority::{
+    validate_element, DialogAuthority, ElementIdentity, OwnedDialog, WindowTopology,
+};
 use super::{
     bounded_timeout, InteractRequest, NativeDialog, NativeDialogAction, NativeDialogControl,
     NativeDialogInteractionResult, NativeDialogSnapshot, SnapshotRequest,
@@ -29,7 +32,6 @@ const MAX_DIALOGS: usize = 4;
 const MAX_ENUMERATED_DIALOGS: usize = 32;
 const MAX_CONTROLS_PER_DIALOG: usize = 128;
 const MAX_DEPTH: usize = 12;
-const MAX_OWNER_CHAIN_DEPTH: usize = 8;
 const MAX_MULTI_SELECT_PATHS: usize = 100;
 const MAX_TEXT_CHARS: usize = 256;
 const MAX_PATH_CHARS: usize = 32_767;
@@ -193,28 +195,11 @@ unsafe fn initialize_worker() -> Result<NativeDialogWorker, String> {
     })
 }
 
+#[derive(Clone)]
 struct CachedElement {
     element: IUIAutomationElement,
-    dialog_window: HWND,
-    process_id: u32,
-    owner_window: HWND,
-    scope_id: String,
+    identity: ElementIdentity,
     supported_actions: Vec<NativeDialogAction>,
-    expires_at: Instant,
-}
-
-impl Clone for CachedElement {
-    fn clone(&self) -> Self {
-        Self {
-            element: self.element.clone(),
-            dialog_window: self.dialog_window,
-            process_id: self.process_id,
-            owner_window: self.owner_window,
-            scope_id: self.scope_id.clone(),
-            supported_actions: self.supported_actions.clone(),
-            expires_at: self.expires_at,
-        }
-    }
 }
 
 struct NativeDialogWorker {
@@ -255,21 +240,20 @@ impl NativeDialogWorker {
         request: &SnapshotRequest,
         deadline: Instant,
     ) -> Result<Vec<NativeDialog>, String> {
-        let owner_window = hwnd_from_usize(request.owner_window);
-        let dialog_windows = enumerate_owned_dialog_windows(owner_window, request.process_id)?;
-        let selected_windows: Vec<OwnedDialogWindow> = dialog_windows
+        let authority = request_authority(
+            request.process_id,
+            request.webview_process_id,
+            request.owner_window,
+        );
+        let dialog_windows = enumerate_owned_dialog_windows(&authority)?;
+        let selected_windows: Vec<OwnedDialog> = dialog_windows
             .into_iter()
             .filter(|dialog| dialog.owner_depth >= request.min_owner_depth)
             .take(MAX_DIALOGS)
             .collect();
         let dialog_refs: HashMap<usize, String> = selected_windows
             .iter()
-            .map(|dialog| {
-                (
-                    hwnd_as_usize(dialog.window),
-                    format!("dialog_{}", Uuid::new_v4()),
-                )
-            })
+            .map(|dialog| (dialog.window, format!("dialog_{}", Uuid::new_v4())))
             .collect();
         let mut dialogs = Vec::with_capacity(selected_windows.len());
 
@@ -277,7 +261,7 @@ impl NativeDialogWorker {
             if Instant::now() >= deadline {
                 return Err("Native dialog snapshot timed out during bounded traversal".to_string());
             }
-            let dialog_window = owned_dialog.window;
+            let dialog_window = hwnd_from_usize(owned_dialog.window);
 
             let root = unsafe { self.automation.ElementFromHandle(dialog_window) }.map_err(|error| {
                 hresult_error(
@@ -286,15 +270,16 @@ impl NativeDialogWorker {
                 )
             })?;
 
-            let current_process = unsafe { root.CurrentProcessId() }.unwrap_or_default();
-            if current_process != request.process_id as i32 {
+            // The UIA root must belong to the same authorized process that owns
+            // the dialog window (the host, or the associated WebView2 process).
+            if element_process_id(&root) != Some(owned_dialog.process_id) {
                 continue;
             }
 
             let title = bounded_bstr(unsafe { root.CurrentName() });
             let automation_id = bounded_bstr(unsafe { root.CurrentAutomationId() });
             let (mut controls, truncated) =
-                self.collect_controls(&root, dialog_window, owner_window, request, deadline)?;
+                self.collect_controls(&root, &owned_dialog, request, deadline)?;
             let kind = infer_dialog_kind(&controls).to_string();
             if kind == "file" {
                 controls.retain(is_supported_file_dialog_control);
@@ -303,7 +288,7 @@ impl NativeDialogWorker {
                     .filter_map(|control| control.element_ref.as_deref())
                     .collect();
                 self.elements.retain(|element_ref, cached| {
-                    cached.dialog_window != dialog_window
+                    cached.identity.dialog_window != owned_dialog.window
                         || retained_refs.contains(element_ref.as_str())
                 });
             }
@@ -313,12 +298,10 @@ impl NativeDialogWorker {
 
             dialogs.push(NativeDialog {
                 dialog_ref: dialog_refs
-                    .get(&hwnd_as_usize(dialog_window))
+                    .get(&owned_dialog.window)
                     .cloned()
                     .unwrap_or_else(|| format!("dialog_{}", Uuid::new_v4())),
-                parent_dialog_ref: owned_dialog
-                    .immediate_owner
-                    .and_then(|owner| dialog_refs.get(&hwnd_as_usize(owner)).cloned()),
+                parent_dialog_ref: dialog_refs.get(&owned_dialog.immediate_owner).cloned(),
                 owner_depth: owned_dialog.owner_depth,
                 kind,
                 title,
@@ -334,8 +317,7 @@ impl NativeDialogWorker {
     fn collect_controls(
         &mut self,
         root: &IUIAutomationElement,
-        dialog_window: HWND,
-        owner_window: HWND,
+        owned_dialog: &OwnedDialog,
         request: &SnapshotRequest,
         deadline: Instant,
     ) -> Result<(Vec<NativeDialogControl>, bool), String> {
@@ -360,10 +342,8 @@ impl NativeDialogWorker {
             }
             visited += 1;
 
-            let process_id = unsafe { element.CurrentProcessId() }.unwrap_or_default();
-            if process_id == request.process_id as i32 {
-                let control =
-                    self.describe_control(&element, dialog_window, owner_window, request, depth);
+            if element_process_id(&element) == Some(owned_dialog.process_id) {
+                let control = self.describe_control(&element, owned_dialog, request, depth);
                 controls.push(control);
             }
 
@@ -386,8 +366,7 @@ impl NativeDialogWorker {
     fn describe_control(
         &mut self,
         element: &IUIAutomationElement,
-        dialog_window: HWND,
-        owner_window: HWND,
+        owned_dialog: &OwnedDialog,
         request: &SnapshotRequest,
         depth: usize,
     ) -> NativeDialogControl {
@@ -419,12 +398,15 @@ impl NativeDialogWorker {
                 element_ref.clone(),
                 CachedElement {
                     element: element.clone(),
-                    dialog_window,
-                    process_id: request.process_id,
-                    owner_window,
-                    scope_id: request.scope_id.clone(),
+                    identity: ElementIdentity {
+                        scope_id: request.scope_id.clone(),
+                        host_process_id: request.process_id,
+                        owner_window: request.owner_window,
+                        dialog_window: owned_dialog.window,
+                        dialog_process_id: owned_dialog.process_id,
+                        expires_at: Instant::now() + ELEMENT_REFERENCE_TTL,
+                    },
                     supported_actions: supported_actions.clone(),
-                    expires_at: Instant::now() + ELEMENT_REFERENCE_TTL,
                 },
             );
             Some(element_ref)
@@ -451,40 +433,34 @@ impl NativeDialogWorker {
         let Some(cached) = self.elements.get(&request.element_ref).cloned() else {
             return Err(STALE_REFERENCE_ERROR.to_string());
         };
-        let owner_window = hwnd_from_usize(request.owner_window);
-        if cached.scope_id != request.scope_id
-            || cached.process_id != request.process_id
-            || cached.owner_window != owner_window
-            || !is_within_security_boundary(
-                cached.process_id,
-                request.process_id,
-                cached.owner_window,
-                owner_window,
-            )
-            || !is_owned_dialog_window(cached.dialog_window, owner_window, request.process_id)
-        {
+        let authority = request_authority(
+            request.process_id,
+            request.webview_process_id,
+            request.owner_window,
+        );
+        // Revalidate session, host, target window, dialog ownership and the
+        // live element process immediately before acting on the element.
+        let revalidation = validate_element(
+            &cached.identity,
+            &request.scope_id,
+            &authority,
+            &Win32Topology,
+            element_process_id(&cached.element),
+            Instant::now(),
+        );
+        if revalidation.is_err() || !cached.supported_actions.contains(&request.action) {
             self.elements.remove(&request.element_ref);
             return Err(STALE_REFERENCE_ERROR.to_string());
         }
-
-        let element_process = unsafe { cached.element.CurrentProcessId() }.map_err(|_| {
-            self.elements.remove(&request.element_ref);
-            STALE_REFERENCE_ERROR.to_string()
-        })?;
-        if element_process != request.process_id as i32
-            || !cached.supported_actions.contains(&request.action)
-        {
-            self.elements.remove(&request.element_ref);
-            return Err(STALE_REFERENCE_ERROR.to_string());
-        }
+        let dialog_window = cached.identity.dialog_window;
 
         match request.action {
             NativeDialogAction::Invoke => {
                 let pattern: IUIAutomationInvokePattern =
                     unsafe { cached.element.GetCurrentPatternAs(UIA_InvokePatternId) }
-                        .map_err(|error| self.interaction_error(cached.dialog_window, &error))?;
+                        .map_err(|error| self.interaction_error(dialog_window, &error))?;
                 unsafe { pattern.Invoke() }
-                    .map_err(|error| self.interaction_error(cached.dialog_window, &error))?;
+                    .map_err(|error| self.interaction_error(dialog_window, &error))?;
             }
             NativeDialogAction::SetValue => {
                 let value = request
@@ -494,10 +470,10 @@ impl NativeDialogWorker {
                 validate_absolute_path(value)?;
                 let pattern: IUIAutomationValuePattern =
                     unsafe { cached.element.GetCurrentPatternAs(UIA_ValuePatternId) }
-                        .map_err(|error| self.interaction_error(cached.dialog_window, &error))?;
+                        .map_err(|error| self.interaction_error(dialog_window, &error))?;
                 let value = BSTR::from(value);
                 unsafe { pattern.SetValue(&value) }
-                    .map_err(|error| self.interaction_error(cached.dialog_window, &error))?;
+                    .map_err(|error| self.interaction_error(dialog_window, &error))?;
             }
             NativeDialogAction::SetPaths => {
                 let paths = request.paths.as_deref().ok_or_else(|| {
@@ -506,10 +482,10 @@ impl NativeDialogWorker {
                 let formatted_paths = format_multi_select_paths(paths)?;
                 let pattern: IUIAutomationValuePattern =
                     unsafe { cached.element.GetCurrentPatternAs(UIA_ValuePatternId) }
-                        .map_err(|error| self.interaction_error(cached.dialog_window, &error))?;
+                        .map_err(|error| self.interaction_error(dialog_window, &error))?;
                 let value = BSTR::from(formatted_paths);
                 unsafe { pattern.SetValue(&value) }
-                    .map_err(|error| self.interaction_error(cached.dialog_window, &error))?;
+                    .map_err(|error| self.interaction_error(dialog_window, &error))?;
             }
             NativeDialogAction::Select => {
                 let pattern: IUIAutomationSelectionItemPattern = unsafe {
@@ -517,9 +493,9 @@ impl NativeDialogWorker {
                         .element
                         .GetCurrentPatternAs(UIA_SelectionItemPatternId)
                 }
-                .map_err(|error| self.interaction_error(cached.dialog_window, &error))?;
+                .map_err(|error| self.interaction_error(dialog_window, &error))?;
                 unsafe { pattern.Select() }
-                    .map_err(|error| self.interaction_error(cached.dialog_window, &error))?;
+                    .map_err(|error| self.interaction_error(dialog_window, &error))?;
             }
         }
 
@@ -529,7 +505,7 @@ impl NativeDialogWorker {
         );
         if references_invalidated {
             self.elements
-                .retain(|_, item| item.dialog_window != cached.dialog_window);
+                .retain(|_, item| item.identity.dialog_window != dialog_window);
         }
 
         Ok(NativeDialogInteractionResult {
@@ -539,16 +515,17 @@ impl NativeDialogWorker {
         })
     }
 
-    fn interaction_error(&mut self, dialog_window: HWND, error: &windows::core::Error) -> String {
+    fn interaction_error(&mut self, dialog_window: usize, error: &windows::core::Error) -> String {
         self.elements
-            .retain(|_, cached| cached.dialog_window != dialog_window);
+            .retain(|_, cached| cached.identity.dialog_window != dialog_window);
         let _ = error;
         STALE_REFERENCE_ERROR.to_string()
     }
 
     fn purge_expired(&mut self) {
         let now = Instant::now();
-        self.elements.retain(|_, cached| cached.expires_at > now);
+        self.elements
+            .retain(|_, cached| cached.identity.expires_at > now);
     }
 }
 
@@ -795,51 +772,71 @@ fn hwnd_as_usize(value: HWND) -> usize {
     value.0 as usize
 }
 
-struct EnumContext {
-    process_id: u32,
-    owner_window: HWND,
-    windows: Vec<OwnedDialogWindow>,
+fn request_authority(
+    host_process_id: u32,
+    webview_process_id: Option<u32>,
+    owner_window: usize,
+) -> DialogAuthority {
+    DialogAuthority {
+        host_process_id,
+        webview_process_id,
+        owner_window,
+    }
 }
 
-#[derive(Clone, Copy)]
-struct OwnedDialogWindow {
-    window: HWND,
-    immediate_owner: Option<HWND>,
-    owner_depth: usize,
+fn element_process_id(element: &IUIAutomationElement) -> Option<u32> {
+    unsafe { element.CurrentProcessId() }
+        .ok()
+        .and_then(|process_id| u32::try_from(process_id).ok())
+}
+
+/// Live Win32 window tree queried by the authorization rules.
+struct Win32Topology;
+
+impl WindowTopology for Win32Topology {
+    fn is_live_visible(&self, window: usize) -> bool {
+        let window = hwnd_from_usize(window);
+        unsafe { IsWindow(Some(window)).as_bool() && IsWindowVisible(window).as_bool() }
+    }
+
+    fn owner(&self, window: usize) -> Option<usize> {
+        unsafe { GetWindow(hwnd_from_usize(window), GW_OWNER) }
+            .ok()
+            .map(hwnd_as_usize)
+            .filter(|owner| *owner != 0)
+    }
+
+    fn process_id(&self, window: usize) -> Option<u32> {
+        let mut process_id = 0;
+        let thread_id =
+            unsafe { GetWindowThreadProcessId(hwnd_from_usize(window), Some(&mut process_id)) };
+        (thread_id != 0 && process_id != 0).then_some(process_id)
+    }
+}
+
+struct EnumContext<'a> {
+    authority: &'a DialogAuthority,
+    windows: Vec<OwnedDialog>,
 }
 
 unsafe extern "system" fn enum_dialog_window(hwnd: HWND, context: LPARAM) -> BOOL {
     let context = &mut *(context.0 as *mut EnumContext);
-    if context.windows.len() >= MAX_ENUMERATED_DIALOGS
-        || !IsWindowVisible(hwnd).as_bool()
-        || hwnd == context.owner_window
-    {
+    if context.windows.len() >= MAX_ENUMERATED_DIALOGS {
         return BOOL(1);
     }
 
-    let mut process_id = 0;
-    GetWindowThreadProcessId(hwnd, Some(&mut process_id));
-    if process_id == context.process_id {
-        if let Some((owner_depth, immediate_owner)) =
-            owner_chain_depth(hwnd, context.owner_window, context.process_id)
-        {
-            context.windows.push(OwnedDialogWindow {
-                window: hwnd,
-                immediate_owner: Some(immediate_owner),
-                owner_depth,
-            });
-        }
+    if let Some(dialog) = context
+        .authority
+        .owned_dialog(&Win32Topology, hwnd_as_usize(hwnd))
+    {
+        context.windows.push(dialog);
     }
     BOOL(1)
 }
 
-fn enumerate_owned_dialog_windows(
-    owner_window: HWND,
-    process_id: u32,
-) -> Result<Vec<OwnedDialogWindow>, String> {
+fn enumerate_owned_dialog_windows(authority: &DialogAuthority) -> Result<Vec<OwnedDialog>, String> {
     let mut context = EnumContext {
-        process_id,
-        owner_window,
+        authority,
         windows: Vec::new(),
     };
     unsafe {
@@ -853,92 +850,14 @@ fn enumerate_owned_dialog_windows(
         right
             .owner_depth
             .cmp(&left.owner_depth)
-            .then_with(|| hwnd_as_usize(left.window).cmp(&hwnd_as_usize(right.window)))
+            .then_with(|| left.window.cmp(&right.window))
     });
     Ok(context.windows)
-}
-
-fn is_owned_dialog_window(dialog_window: HWND, owner_window: HWND, process_id: u32) -> bool {
-    if !unsafe { IsWindow(Some(dialog_window)) }.as_bool()
-        || !unsafe { IsWindowVisible(dialog_window) }.as_bool()
-    {
-        return false;
-    }
-
-    let mut actual_process_id = 0;
-    unsafe { GetWindowThreadProcessId(dialog_window, Some(&mut actual_process_id)) };
-    if actual_process_id != process_id {
-        return false;
-    }
-
-    owner_chain_depth(dialog_window, owner_window, process_id).is_some()
-}
-
-fn owner_chain_depth(
-    dialog_window: HWND,
-    root_owner: HWND,
-    expected_process_id: u32,
-) -> Option<(usize, HWND)> {
-    let mut current = dialog_window;
-    let mut immediate_owner = None;
-    let mut visited = HashSet::with_capacity(MAX_OWNER_CHAIN_DEPTH + 1);
-    visited.insert(hwnd_as_usize(dialog_window));
-
-    for depth in 1..=MAX_OWNER_CHAIN_DEPTH {
-        let owner = unsafe { GetWindow(current, GW_OWNER) }.ok()?;
-        if owner.0.is_null() || !visited.insert(hwnd_as_usize(owner)) {
-            return None;
-        }
-        immediate_owner.get_or_insert(owner);
-
-        let mut owner_process_id = 0;
-        unsafe { GetWindowThreadProcessId(owner, Some(&mut owner_process_id)) };
-        if owner_process_id != expected_process_id {
-            return None;
-        }
-        if owner == root_owner {
-            return immediate_owner.map(|immediate| (depth, immediate));
-        }
-        current = owner;
-    }
-    None
-}
-
-fn is_within_security_boundary(
-    actual_process_id: u32,
-    expected_process_id: u32,
-    actual_owner: HWND,
-    expected_owner: HWND,
-) -> bool {
-    actual_process_id == expected_process_id && actual_owner == expected_owner
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn security_boundary_rejects_other_processes_and_owners() {
-        let expected_owner = hwnd_from_usize(100);
-        assert!(is_within_security_boundary(
-            42,
-            42,
-            expected_owner,
-            expected_owner
-        ));
-        assert!(!is_within_security_boundary(
-            7,
-            42,
-            expected_owner,
-            expected_owner
-        ));
-        assert!(!is_within_security_boundary(
-            42,
-            42,
-            hwnd_from_usize(101),
-            expected_owner
-        ));
-    }
 
     #[test]
     fn semantic_roles_do_not_depend_on_localized_button_names() {

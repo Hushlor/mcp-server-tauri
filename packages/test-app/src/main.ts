@@ -18,6 +18,20 @@ function showDialogResult(dialogResult: HTMLElement, text: string): void {
    }
 }
 
+function watchHtmlFileInput(selector: string, label: string, resultElement: HTMLElement): void {
+   const input = document.querySelector(selector) as HTMLInputElement | null;
+
+   input?.addEventListener('change', () => {
+      const names = Array.from(input.files ?? []).map((file) => { return file.name; });
+
+      showDialogResult(resultElement, `${label} result: ${names.length ? names.join(', ') : 'Cancelled'}`);
+      input.value = '';
+   });
+   input?.addEventListener('cancel', () => {
+      showDialogResult(resultElement, `${label} result: Cancelled`);
+   });
+}
+
 window.addEventListener('DOMContentLoaded', () => {
    greetInputEl = document.querySelector('#greet-input');
    greetMsgEl = document.querySelector('#greet-msg');
@@ -27,6 +41,11 @@ window.addEventListener('DOMContentLoaded', () => {
    });
 
    const dialogResult = document.querySelector('#dialog-result') as HTMLElement;
+
+   const htmlFileResult = document.querySelector('#html-file-result') as HTMLElement;
+
+   watchHtmlFileInput('#html-file-single', 'HTML single file', htmlFileResult);
+   watchHtmlFileInput('#html-file-multiple', 'HTML multiple files', htmlFileResult);
 
    document.querySelector('#dialog-message')?.addEventListener('click', () => {
       message('This is a test message from the demo app.', { title: 'MCP Dialog Test', kind: 'info' })

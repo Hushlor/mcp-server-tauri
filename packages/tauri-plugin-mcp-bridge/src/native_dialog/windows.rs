@@ -243,6 +243,7 @@ impl NativeDialogWorker {
         let authority = request_authority(
             request.process_id,
             request.webview_process_id,
+            &request.webview_utility_process_ids,
             request.owner_window,
         );
         let dialog_windows = enumerate_owned_dialog_windows(&authority)?;
@@ -436,6 +437,7 @@ impl NativeDialogWorker {
         let authority = request_authority(
             request.process_id,
             request.webview_process_id,
+            &request.webview_utility_process_ids,
             request.owner_window,
         );
         // Revalidate session, host, target window, dialog ownership and the
@@ -775,11 +777,13 @@ fn hwnd_as_usize(value: HWND) -> usize {
 fn request_authority(
     host_process_id: u32,
     webview_process_id: Option<u32>,
+    webview_utility_process_ids: &[u32],
     owner_window: usize,
 ) -> DialogAuthority {
     DialogAuthority {
         host_process_id,
         webview_process_id,
+        webview_utility_process_ids: webview_utility_process_ids.to_vec(),
         owner_window,
     }
 }

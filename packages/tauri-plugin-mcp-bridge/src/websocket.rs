@@ -387,42 +387,90 @@ fn native_owner_handle<R: Runtime>(_window: &WebviewWindow<R>) -> Result<usize, 
     Ok(0)
 }
 
-/// Upper bound for reading the WebView2 browser PID on the main thread.
+/// Upper bound for reading the WebView2 process identities on the main thread.
 #[cfg(target_os = "windows")]
 const WEBVIEW_PROCESS_ID_TIMEOUT: Duration = Duration::from_secs(1);
 
-/// Returns the WebView2 browser process PID of the targeted window.
+/// WebView2 processes of the targeted window that may own native dialogs.
+#[derive(Debug, Default)]
+struct NativeWebviewProcesses {
+    browser: Option<u32>,
+    utilities: Vec<u32>,
+}
+
+/// Returns the WebView2 processes of the targeted window that may create
+/// native dialogs.
 ///
-/// WebView2 shows `<input type="file">` pickers from its browser process
-/// (`msedgewebview2.exe`), not from the Tauri host process. The PID is read
-/// from the targeted window's own `ICoreWebView2::BrowserProcessId`, so it is
-/// tied to this webview instance rather than to a process name. `None` (lookup
-/// failure or timeout) restricts automation to host-process dialogs.
+/// WebView2 does not show `<input type="file">` pickers from the Tauri host
+/// process. Depending on the runtime version they come from the browser process
+/// or from one of its utility processes. Both are read from the targeted
+/// window's own WebView2 instance: `ICoreWebView2::BrowserProcessId` and
+/// `ICoreWebView2Environment8::GetProcessInfos` filtered to
+/// `COREWEBVIEW2_PROCESS_KIND_UTILITY`. They are tied to this webview and its
+/// environment rather than to a process name. Lookup failure or timeout
+/// restricts automation to whatever could be read, down to host-process dialogs
+/// only.
 #[cfg(target_os = "windows")]
-async fn native_webview_process_id<R: Runtime>(window: &WebviewWindow<R>) -> Option<u32> {
+async fn native_webview_processes<R: Runtime>(window: &WebviewWindow<R>) -> NativeWebviewProcesses {
+    use webview2_com::Microsoft::Web::WebView2::Win32::{
+        ICoreWebView2Environment8, COREWEBVIEW2_PROCESS_KIND, COREWEBVIEW2_PROCESS_KIND_UTILITY,
+    };
+    use windows_core::Interface;
+
     let (sender, receiver) = tokio::sync::oneshot::channel();
-    window
-        .with_webview(move |webview| {
-            let process_id = unsafe {
-                webview.controller().CoreWebView2().ok().and_then(|core| {
-                    let mut process_id = 0u32;
-                    core.BrowserProcessId(&mut process_id)
-                        .ok()
-                        .map(|_| process_id)
-                })
-            };
-            let _ = sender.send(process_id.filter(|process_id| *process_id != 0));
-        })
-        .ok()?;
-    tokio::time::timeout(WEBVIEW_PROCESS_ID_TIMEOUT, receiver)
-        .await
-        .ok()?
-        .ok()?
+    let scheduled = window.with_webview(move |webview| {
+        let browser = unsafe {
+            webview.controller().CoreWebView2().ok().and_then(|core| {
+                let mut process_id = 0u32;
+                core.BrowserProcessId(&mut process_id)
+                    .ok()
+                    .map(|_| process_id)
+            })
+        }
+        .filter(|process_id| *process_id != 0);
+
+        let mut utilities = Vec::new();
+        if let Ok(environment) = webview.environment().cast::<ICoreWebView2Environment8>() {
+            if let Ok(infos) = unsafe { environment.GetProcessInfos() } {
+                let mut count = 0u32;
+                if unsafe { infos.Count(&mut count) }.is_ok() {
+                    for index in 0..count {
+                        let Ok(info) = (unsafe { infos.GetValueAtIndex(index) }) else {
+                            continue;
+                        };
+                        let mut kind = COREWEBVIEW2_PROCESS_KIND::default();
+                        let mut process_id = 0i32;
+                        if unsafe { info.Kind(&mut kind) }.is_ok()
+                            && kind == COREWEBVIEW2_PROCESS_KIND_UTILITY
+                            && unsafe { info.ProcessId(&mut process_id) }.is_ok()
+                        {
+                            if let Ok(process_id) = u32::try_from(process_id) {
+                                if process_id != 0 && Some(process_id) != browser {
+                                    utilities.push(process_id);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        let _ = sender.send(NativeWebviewProcesses { browser, utilities });
+    });
+    if scheduled.is_err() {
+        return NativeWebviewProcesses::default();
+    }
+    match tokio::time::timeout(WEBVIEW_PROCESS_ID_TIMEOUT, receiver).await {
+        Ok(Ok(processes)) => processes,
+        _ => NativeWebviewProcesses::default(),
+    }
 }
 
 #[cfg(not(target_os = "windows"))]
-async fn native_webview_process_id<R: Runtime>(_window: &WebviewWindow<R>) -> Option<u32> {
-    None
+async fn native_webview_processes<R: Runtime>(
+    _window: &WebviewWindow<R>,
+) -> NativeWebviewProcesses {
+    NativeWebviewProcesses::default()
 }
 
 fn native_dialog_timeout(args: &Value) -> Duration {
@@ -455,12 +503,13 @@ async fn handle_native_dialog_snapshot<R: Runtime>(
         Ok(owner_window) => owner_window,
         Err(error) => return error_response(id, error),
     };
-    let webview_process_id = native_webview_process_id(&resolved.window).await;
+    let webview_processes = native_webview_processes(&resolved.window).await;
     let context = resolved.context;
     let automation = app.state::<NativeDialogAutomation>().inner().clone();
     let request = SnapshotRequest {
         process_id: std::process::id(),
-        webview_process_id,
+        webview_process_id: webview_processes.browser,
+        webview_utility_process_ids: webview_processes.utilities,
         owner_window,
         scope_id: scope_id.to_string(),
         min_owner_depth: args
@@ -530,12 +579,13 @@ async fn handle_native_dialog_interact<R: Runtime>(
         Ok(owner_window) => owner_window,
         Err(error) => return error_response(id, error),
     };
-    let webview_process_id = native_webview_process_id(&resolved.window).await;
+    let webview_processes = native_webview_processes(&resolved.window).await;
     let context = resolved.context;
     let automation = app.state::<NativeDialogAutomation>().inner().clone();
     let request = InteractRequest {
         process_id: std::process::id(),
-        webview_process_id,
+        webview_process_id: webview_processes.browser,
+        webview_utility_process_ids: webview_processes.utilities,
         owner_window,
         scope_id: scope_id.to_string(),
         element_ref: element_ref.to_string(),

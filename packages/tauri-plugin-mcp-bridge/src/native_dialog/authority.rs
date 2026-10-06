@@ -4,13 +4,18 @@
 //! bounded chain of owner windows, by the targeted Tauri window, and when every
 //! window in that chain belongs to an authorized process:
 //!
-//! - the Tauri host process itself, or
+//! - the Tauri host process itself,
 //! - the WebView2 browser process reported by the targeted window's own
-//!   `ICoreWebView2::BrowserProcessId`.
+//!   `ICoreWebView2::BrowserProcessId`, or
+//! - a WebView2 utility process listed by the targeted window's own
+//!   environment (`ICoreWebView2Environment8::GetProcessInfos`, kind
+//!   `COREWEBVIEW2_PROCESS_KIND_UTILITY`). Current WebView2 runtimes create
+//!   `<input type="file">` pickers in such a utility process.
 //!
-//! The WebView2 process is never identified by executable name or window title.
-//! Its PID is re-read from the live WebView2 instance on every request, so the
-//! authority is always derived from the targeted window rather than cached.
+//! WebView2 processes are never identified by executable name or window title.
+//! Their PIDs are re-read from the live WebView2 instance on every request, so
+//! the authority is always derived from the targeted window rather than cached.
+//! Renderer, GPU and other WebView2 process kinds are never authorized.
 
 use std::collections::HashSet;
 use std::time::Instant;
@@ -32,10 +37,11 @@ pub(crate) trait WindowTopology {
 }
 
 /// The identity a request is authorized to automate.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct DialogAuthority {
     pub host_process_id: u32,
     pub webview_process_id: Option<u32>,
+    pub webview_utility_process_ids: Vec<u32>,
     pub owner_window: usize,
 }
 
@@ -53,7 +59,9 @@ impl DialogAuthority {
     /// take part in a dialog owned by the targeted window.
     pub fn allows_process(&self, process_id: u32) -> bool {
         process_id != 0
-            && (process_id == self.host_process_id || self.webview_process_id == Some(process_id))
+            && (process_id == self.host_process_id
+                || self.webview_process_id == Some(process_id)
+                || self.webview_utility_process_ids.contains(&process_id))
     }
 
     /// Accepts `window` only when it is a live, visible window from an
@@ -168,6 +176,8 @@ mod tests {
 
     const HOST: u32 = 100;
     const WEBVIEW: u32 = 200;
+    /// A utility process of the targeted window's WebView2 environment.
+    const WEBVIEW_UTILITY: u32 = 250;
     const OTHER_APP: u32 = 300;
     /// Another `msedgewebview2.exe` instance (e.g. another app's WebView2).
     const UNRELATED_WEBVIEW: u32 = 400;
@@ -213,6 +223,7 @@ mod tests {
         DialogAuthority {
             host_process_id: HOST,
             webview_process_id: Some(WEBVIEW),
+            webview_utility_process_ids: vec![WEBVIEW_UTILITY],
             owner_window,
         }
     }
@@ -256,10 +267,43 @@ mod tests {
     }
 
     #[test]
+    fn accepts_dialog_from_a_utility_process_of_the_targeted_webview2_environment() {
+        let topology = FakeTopology::base()
+            .with(10, WEBVIEW_UTILITY, Some(MAIN_WINDOW))
+            .with(11, WEBVIEW_UTILITY, Some(10));
+        let dialog = authority(MAIN_WINDOW).owned_dialog(&topology, 10).unwrap();
+        assert_eq!(dialog.process_id, WEBVIEW_UTILITY);
+        assert_eq!(dialog.owner_depth, 1);
+        let nested = authority(MAIN_WINDOW).owned_dialog(&topology, 11).unwrap();
+        assert_eq!(nested.owner_depth, 2);
+    }
+
+    #[test]
+    fn rejects_utility_processes_outside_the_targeted_webview2_environment() {
+        // Renderers and utilities of other environments are absent from the
+        // targeted environment's utility list, whatever their executable name.
+        let topology = FakeTopology::base().with(10, UNRELATED_WEBVIEW, Some(MAIN_WINDOW));
+        assert!(authority(MAIN_WINDOW).owned_dialog(&topology, 10).is_none());
+        let no_utilities = DialogAuthority {
+            webview_utility_process_ids: Vec::new(),
+            ..authority(MAIN_WINDOW)
+        };
+        let utility = FakeTopology::base().with(10, WEBVIEW_UTILITY, Some(MAIN_WINDOW));
+        assert!(no_utilities.owned_dialog(&utility, 10).is_none());
+    }
+
+    #[test]
+    fn rejects_utility_dialog_owned_by_another_window() {
+        let topology = FakeTopology::base().with(10, WEBVIEW_UTILITY, Some(SECOND_WINDOW));
+        assert!(authority(MAIN_WINDOW).owned_dialog(&topology, 10).is_none());
+    }
+
+    #[test]
     fn rejects_webview2_dialog_when_no_webview2_process_is_associated() {
         let topology = FakeTopology::base().with(10, WEBVIEW, Some(MAIN_WINDOW));
         let host_only = DialogAuthority {
             webview_process_id: None,
+            webview_utility_process_ids: Vec::new(),
             ..authority(MAIN_WINDOW)
         };
         assert!(host_only.owned_dialog(&topology, 10).is_none());
@@ -327,6 +371,7 @@ mod tests {
         let topology = FakeTopology::base().with(10, 0, Some(MAIN_WINDOW));
         let zero_webview = DialogAuthority {
             webview_process_id: Some(0),
+            webview_utility_process_ids: vec![0],
             ..authority(MAIN_WINDOW)
         };
         assert!(!zero_webview.allows_process(0));
@@ -337,14 +382,13 @@ mod tests {
     }
 
     #[test]
-    fn validates_live_references_from_both_authorized_processes() {
-        let topology = FakeTopology::base().with(10, HOST, Some(MAIN_WINDOW)).with(
-            20,
-            WEBVIEW,
-            Some(MAIN_WINDOW),
-        );
+    fn validates_live_references_from_every_authorized_process() {
+        let topology = FakeTopology::base()
+            .with(10, HOST, Some(MAIN_WINDOW))
+            .with(20, WEBVIEW, Some(MAIN_WINDOW))
+            .with(30, WEBVIEW_UTILITY, Some(MAIN_WINDOW));
         let now = Instant::now();
-        for (window, process_id) in [(10, HOST), (20, WEBVIEW)] {
+        for (window, process_id) in [(10, HOST), (20, WEBVIEW), (30, WEBVIEW_UTILITY)] {
             assert_eq!(
                 validate_element(
                     &identity(window, process_id),

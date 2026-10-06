@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Fixed
+- Native Windows dialog automation now also supports `<input type="file">` pickers created by a WebView2 utility process, as current WebView2 runtimes do. Utility processes are authorized only when the targeted window's own WebView2 environment lists them (`ICoreWebView2Environment8::GetProcessInfos`) and the dialog is owned by the targeted window.
 
 ## [0.14.1] - 2026-10-06
 

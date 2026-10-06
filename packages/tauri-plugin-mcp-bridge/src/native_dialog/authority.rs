@@ -9,8 +9,10 @@
 //!   `ICoreWebView2::BrowserProcessId`, or
 //! - a WebView2 utility process listed by the targeted window's own
 //!   environment (`ICoreWebView2Environment8::GetProcessInfos`, kind
-//!   `COREWEBVIEW2_PROCESS_KIND_UTILITY`). Current WebView2 runtimes create
-//!   `<input type="file">` pickers in such a utility process.
+//!   `COREWEBVIEW2_PROCESS_KIND_UTILITY`) whose direct parent, as reported by
+//!   the operating system, is that browser process. Current WebView2 runtimes
+//!   create `<input type="file">` pickers in such a utility process. Utility
+//!   processes are never authorized when the browser process is unknown.
 //!
 //! WebView2 processes are never identified by executable name or window title.
 //! Their PIDs are re-read from the live WebView2 instance on every request, so
@@ -22,6 +24,10 @@ use std::time::Instant;
 
 /// Maximum number of owner hops followed from a dialog to the targeted window.
 pub(crate) const MAX_OWNER_CHAIN_DEPTH: usize = 8;
+
+/// Maximum WebView2 process entries considered. A larger list authorizes no
+/// utility process rather than a truncated one.
+pub(crate) const MAX_WEBVIEW_PROCESS_INFOS: usize = 128;
 
 /// Read-only view of the native window tree used by the authorization checks.
 ///
@@ -58,10 +64,11 @@ impl DialogAuthority {
     /// Returns whether a window or UI Automation element from `process_id` may
     /// take part in a dialog owned by the targeted window.
     pub fn allows_process(&self, process_id: u32) -> bool {
+        let browser = self.webview_process_id.filter(|browser| *browser != 0);
         process_id != 0
             && (process_id == self.host_process_id
-                || self.webview_process_id == Some(process_id)
-                || self.webview_utility_process_ids.contains(&process_id))
+                || browser == Some(process_id)
+                || (browser.is_some() && self.webview_utility_process_ids.contains(&process_id)))
     }
 
     /// Accepts `window` only when it is a live, visible window from an
@@ -106,6 +113,38 @@ impl DialogAuthority {
         }
         None
     }
+}
+
+/// Returns the WebView2 utility candidates that are direct children of the
+/// browser process.
+///
+/// `candidates` are the utility PIDs listed by the targeted window's WebView2
+/// environment and `parent_of` resolves a PID's direct parent through the
+/// operating system (`None` when unknown). Nothing is authorized without a
+/// browser PID or when the environment listed more than
+/// [`MAX_WEBVIEW_PROCESS_INFOS`] processes.
+pub(crate) fn verified_utility_children(
+    browser_process_id: Option<u32>,
+    candidates: &[u32],
+    parent_of: impl Fn(u32) -> Option<u32>,
+) -> Vec<u32> {
+    let Some(browser) = browser_process_id.filter(|browser| *browser != 0) else {
+        return Vec::new();
+    };
+    if candidates.len() > MAX_WEBVIEW_PROCESS_INFOS {
+        return Vec::new();
+    }
+    let mut verified = Vec::new();
+    for &candidate in candidates {
+        if candidate != 0
+            && candidate != browser
+            && !verified.contains(&candidate)
+            && parent_of(candidate) == Some(browser)
+        {
+            verified.push(candidate);
+        }
+    }
+    verified
 }
 
 /// Identity captured when an element reference is issued by a snapshot.
@@ -290,6 +329,86 @@ mod tests {
         };
         let utility = FakeTopology::base().with(10, WEBVIEW_UTILITY, Some(MAIN_WINDOW));
         assert!(no_utilities.owned_dialog(&utility, 10).is_none());
+    }
+
+    #[test]
+    fn never_authorizes_utilities_without_a_known_browser_process() {
+        let topology = FakeTopology::base().with(10, WEBVIEW_UTILITY, Some(MAIN_WINDOW));
+        for browser in [None, Some(0)] {
+            let without_browser = DialogAuthority {
+                webview_process_id: browser,
+                ..authority(MAIN_WINDOW)
+            };
+            assert!(!without_browser.allows_process(WEBVIEW_UTILITY));
+            assert!(without_browser.owned_dialog(&topology, 10).is_none());
+        }
+    }
+
+    #[test]
+    fn verifies_utility_candidates_against_their_os_parent() {
+        let parents: HashMap<u32, u32> = [
+            (WEBVIEW_UTILITY, WEBVIEW),
+            (251, WEBVIEW),
+            (260, OTHER_APP),
+            (261, HOST),
+        ]
+        .into_iter()
+        .collect();
+        let parent_of = |process_id: u32| parents.get(&process_id).copied();
+
+        assert_eq!(
+            verified_utility_children(
+                Some(WEBVIEW),
+                &[
+                    WEBVIEW_UTILITY,
+                    251,
+                    260,
+                    261,
+                    262,
+                    0,
+                    WEBVIEW,
+                    WEBVIEW_UTILITY
+                ],
+                parent_of,
+            ),
+            vec![WEBVIEW_UTILITY, 251]
+        );
+    }
+
+    #[test]
+    fn verification_fails_closed() {
+        let parent_of = |_: u32| Some(WEBVIEW);
+        assert!(verified_utility_children(None, &[WEBVIEW_UTILITY], parent_of).is_empty());
+        assert!(verified_utility_children(Some(0), &[WEBVIEW_UTILITY], parent_of).is_empty());
+        assert!(verified_utility_children(Some(WEBVIEW), &[WEBVIEW_UTILITY], |_| None).is_empty());
+
+        let at_limit: Vec<u32> = (1_000..1_000 + MAX_WEBVIEW_PROCESS_INFOS as u32).collect();
+        assert_eq!(
+            verified_utility_children(Some(WEBVIEW), &at_limit, parent_of).len(),
+            MAX_WEBVIEW_PROCESS_INFOS
+        );
+        let over_limit: Vec<u32> = (1_000..1_001 + MAX_WEBVIEW_PROCESS_INFOS as u32).collect();
+        assert!(verified_utility_children(Some(WEBVIEW), &over_limit, parent_of).is_empty());
+    }
+
+    #[test]
+    fn rejects_references_after_the_utility_list_changes() {
+        let topology = FakeTopology::base().with(30, WEBVIEW_UTILITY, Some(MAIN_WINDOW));
+        let restarted = DialogAuthority {
+            webview_utility_process_ids: vec![WEBVIEW_UTILITY + 1],
+            ..authority(MAIN_WINDOW)
+        };
+        assert_eq!(
+            validate_element(
+                &identity(30, WEBVIEW_UTILITY),
+                "session-a",
+                &restarted,
+                &topology,
+                Some(WEBVIEW_UTILITY),
+                Instant::now(),
+            ),
+            Err(ReferenceRejection::DialogUnavailable)
+        );
     }
 
     #[test]

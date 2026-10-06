@@ -2,8 +2,9 @@ use super::authority::{
     validate_element, DialogAuthority, ElementIdentity, OwnedDialog, WindowTopology,
 };
 use super::{
-    bounded_timeout, InteractRequest, NativeDialog, NativeDialogAction, NativeDialogControl,
-    NativeDialogInteractionResult, NativeDialogSnapshot, SnapshotRequest,
+    bounded_timeout, no_dialog_error, to_windows_separators, InteractRequest, NativeDialog,
+    NativeDialogAction, NativeDialogControl, NativeDialogInteractionResult, NativeDialogSnapshot,
+    SnapshotRequest, TRAVERSAL_TIMEOUT_ERROR,
 };
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::path::Path;
@@ -225,10 +226,7 @@ impl NativeDialogWorker {
             }
 
             if Instant::now() >= deadline {
-                return Err(format!(
-                    "No native dialog owned by the targeted Tauri window appeared within {} ms",
-                    timeout.as_millis()
-                ));
+                return Err(no_dialog_error(timeout));
             }
 
             thread::sleep(POLL_INTERVAL.min(deadline.saturating_duration_since(Instant::now())));
@@ -260,7 +258,7 @@ impl NativeDialogWorker {
 
         for owned_dialog in selected_windows {
             if Instant::now() >= deadline {
-                return Err("Native dialog snapshot timed out during bounded traversal".to_string());
+                return Err(TRAVERSAL_TIMEOUT_ERROR.to_string());
             }
             let dialog_window = hwnd_from_usize(owned_dialog.window);
 
@@ -335,7 +333,7 @@ impl NativeDialogWorker {
 
         while let Some((element, depth)) = queue.pop_front() {
             if Instant::now() >= deadline {
-                return Err("Native dialog snapshot timed out during bounded traversal".to_string());
+                return Err(TRAVERSAL_TIMEOUT_ERROR.to_string());
             }
             if visited >= MAX_CONTROLS_PER_DIALOG {
                 truncated = true;
@@ -470,10 +468,11 @@ impl NativeDialogWorker {
                     .as_deref()
                     .ok_or_else(|| "setValue requires a complete absolute path".to_string())?;
                 validate_absolute_path(value)?;
+                let value = to_windows_separators(value);
                 let pattern: IUIAutomationValuePattern =
                     unsafe { cached.element.GetCurrentPatternAs(UIA_ValuePatternId) }
                         .map_err(|error| self.interaction_error(dialog_window, &error))?;
-                let value = BSTR::from(value);
+                let value = BSTR::from(value.as_str());
                 unsafe { pattern.SetValue(&value) }
                     .map_err(|error| self.interaction_error(dialog_window, &error))?;
             }
@@ -753,7 +752,7 @@ fn format_multi_select_paths(paths: &[String]) -> Result<String, String> {
 
     let formatted = paths
         .iter()
-        .map(|path| format!("\"{path}\""))
+        .map(|path| format!("\"{}\"", to_windows_separators(path)))
         .collect::<Vec<_>>()
         .join(" ");
     if formatted.chars().count() > MAX_PATH_CHARS {
@@ -772,6 +771,39 @@ fn hwnd_from_usize(value: usize) -> HWND {
 
 fn hwnd_as_usize(value: HWND) -> usize {
     value.0 as usize
+}
+
+/// Maximum process entries read from one ToolHelp32 snapshot. A larger process
+/// table yields no parent information, which authorizes no utility process.
+const MAX_TOOLHELP_PROCESSES: usize = 8192;
+
+/// Returns each running process's direct parent PID from one ToolHelp32
+/// snapshot, or `None` when the snapshot fails or exceeds the entry limit.
+pub(crate) fn process_parent_ids() -> Option<HashMap<u32, u32>> {
+    use windows::Win32::Foundation::CloseHandle;
+    use windows::Win32::System::Diagnostics::ToolHelp::{
+        CreateToolhelp32Snapshot, Process32FirstW, Process32NextW, PROCESSENTRY32W,
+        TH32CS_SNAPPROCESS,
+    };
+
+    let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0) }.ok()?;
+    let mut entry = PROCESSENTRY32W {
+        dwSize: std::mem::size_of::<PROCESSENTRY32W>() as u32,
+        ..Default::default()
+    };
+    let mut parents = HashMap::new();
+    let mut complete = true;
+    let mut next = unsafe { Process32FirstW(snapshot, &mut entry) };
+    while next.is_ok() {
+        if parents.len() >= MAX_TOOLHELP_PROCESSES {
+            complete = false;
+            break;
+        }
+        parents.insert(entry.th32ProcessID, entry.th32ParentProcessID);
+        next = unsafe { Process32NextW(snapshot, &mut entry) };
+    }
+    let _ = unsafe { CloseHandle(snapshot) };
+    complete.then_some(parents)
 }
 
 fn request_authority(
@@ -918,6 +950,40 @@ mod tests {
         assert!(!error.contains(sensitive_text.as_str()));
 
         std::fs::remove_dir_all(fixture_directory).unwrap();
+    }
+
+    #[test]
+    fn multi_select_paths_use_windows_separators() {
+        let fixture_directory =
+            std::env::temp_dir().join(format!("tauri-mcp-slash-test-{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&fixture_directory).unwrap();
+        let first = fixture_directory.join("first file.txt");
+        let second = fixture_directory.join("second.txt");
+        std::fs::write(&first, b"first").unwrap();
+        std::fs::write(&second, b"second").unwrap();
+
+        let slashed: Vec<String> = [&first, &second]
+            .iter()
+            .map(|path| path.to_string_lossy().replace('\\', "/"))
+            .collect();
+        let formatted = format_multi_select_paths(&slashed).unwrap();
+        assert!(!formatted.contains('/'));
+        assert_eq!(
+            formatted,
+            format!(
+                "\"{}\" \"{}\"",
+                first.to_string_lossy(),
+                second.to_string_lossy()
+            )
+        );
+
+        std::fs::remove_dir_all(fixture_directory).unwrap();
+    }
+
+    #[test]
+    fn process_parent_snapshot_includes_the_current_process() {
+        let parents = process_parent_ids().expect("ToolHelp32 snapshot");
+        assert!(parents.contains_key(&std::process::id()));
     }
 
     #[test]

@@ -7,7 +7,9 @@
 use crate::commands::{self, resolve_window_with_context, ScriptExecutor, WindowContext};
 use crate::logging::{mcp_log_error, mcp_log_info};
 use crate::native_dialog::{
-    bounded_timeout, InteractRequest, NativeDialogAction, NativeDialogAutomation, SnapshotRequest,
+    bounded_timeout, is_retryable_snapshot_error, no_dialog_error, snapshot_attempt_budget,
+    InteractRequest, NativeDialogAction, NativeDialogAutomation, SnapshotRequest,
+    MIN_SNAPSHOT_RETRY_BUDGET, TRAVERSAL_TIMEOUT_ERROR,
 };
 use crate::script_registry::{ScriptEntry, ScriptType, SharedScriptRegistry};
 use futures_util::{SinkExt, StreamExt};
@@ -406,12 +408,16 @@ struct NativeWebviewProcesses {
 /// or from one of its utility processes. Both are read from the targeted
 /// window's own WebView2 instance: `ICoreWebView2::BrowserProcessId` and
 /// `ICoreWebView2Environment8::GetProcessInfos` filtered to
-/// `COREWEBVIEW2_PROCESS_KIND_UTILITY`. They are tied to this webview and its
-/// environment rather than to a process name. Lookup failure or timeout
-/// restricts automation to whatever could be read, down to host-process dialogs
-/// only.
+/// `COREWEBVIEW2_PROCESS_KIND_UTILITY`. Each utility candidate is then
+/// confirmed through the operating system: its direct parent must be that
+/// browser process. Lookup failures, a timeout, an unknown browser process or
+/// an oversized process list authorize no utility process; an unknown browser
+/// process restricts automation to host-process dialogs.
 #[cfg(target_os = "windows")]
 async fn native_webview_processes<R: Runtime>(window: &WebviewWindow<R>) -> NativeWebviewProcesses {
+    use crate::native_dialog::{
+        process_parent_ids, verified_utility_children, MAX_WEBVIEW_PROCESS_INFOS,
+    };
     use webview2_com::Microsoft::Web::WebView2::Win32::{
         ICoreWebView2Environment8, COREWEBVIEW2_PROCESS_KIND, COREWEBVIEW2_PROCESS_KIND_UTILITY,
     };
@@ -429,12 +435,14 @@ async fn native_webview_processes<R: Runtime>(window: &WebviewWindow<R>) -> Nati
         }
         .filter(|process_id| *process_id != 0);
 
-        let mut utilities = Vec::new();
-        if let Ok(environment) = webview.environment().cast::<ICoreWebView2Environment8>() {
-            if let Ok(infos) = unsafe { environment.GetProcessInfos() } {
-                let mut count = 0u32;
-                if unsafe { infos.Count(&mut count) }.is_ok() {
-                    for index in 0..count {
+        let mut candidates = Vec::new();
+        if browser.is_some() {
+            if let Ok(environment) = webview.environment().cast::<ICoreWebView2Environment8>() {
+                if let Ok(infos) = unsafe { environment.GetProcessInfos() } {
+                    let mut count = 0u32;
+                    let listed = unsafe { infos.Count(&mut count) }.is_ok()
+                        && count as usize <= MAX_WEBVIEW_PROCESS_INFOS;
+                    for index in 0..if listed { count } else { 0 } {
                         let Ok(info) = (unsafe { infos.GetValueAtIndex(index) }) else {
                             continue;
                         };
@@ -445,9 +453,7 @@ async fn native_webview_processes<R: Runtime>(window: &WebviewWindow<R>) -> Nati
                             && unsafe { info.ProcessId(&mut process_id) }.is_ok()
                         {
                             if let Ok(process_id) = u32::try_from(process_id) {
-                                if process_id != 0 && Some(process_id) != browser {
-                                    utilities.push(process_id);
-                                }
+                                candidates.push(process_id);
                             }
                         }
                     }
@@ -455,15 +461,34 @@ async fn native_webview_processes<R: Runtime>(window: &WebviewWindow<R>) -> Nati
             }
         }
 
-        let _ = sender.send(NativeWebviewProcesses { browser, utilities });
+        let _ = sender.send((browser, candidates));
     });
     if scheduled.is_err() {
         return NativeWebviewProcesses::default();
     }
-    match tokio::time::timeout(WEBVIEW_PROCESS_ID_TIMEOUT, receiver).await {
-        Ok(Ok(processes)) => processes,
-        _ => NativeWebviewProcesses::default(),
+    let Ok(Ok((browser, candidates))) =
+        tokio::time::timeout(WEBVIEW_PROCESS_ID_TIMEOUT, receiver).await
+    else {
+        return NativeWebviewProcesses::default();
+    };
+    if candidates.is_empty() {
+        return NativeWebviewProcesses {
+            browser,
+            utilities: Vec::new(),
+        };
     }
+
+    let parents = tokio::task::spawn_blocking(process_parent_ids)
+        .await
+        .ok()
+        .flatten();
+    let utilities = match parents {
+        Some(parents) => verified_utility_children(browser, &candidates, |process_id| {
+            parents.get(&process_id).copied()
+        }),
+        None => Vec::new(),
+    };
+    NativeWebviewProcesses { browser, utilities }
 }
 
 #[cfg(not(target_os = "windows"))]
@@ -503,37 +528,68 @@ async fn handle_native_dialog_snapshot<R: Runtime>(
         Ok(owner_window) => owner_window,
         Err(error) => return error_response(id, error),
     };
-    let webview_processes = native_webview_processes(&resolved.window).await;
     let context = resolved.context;
     let automation = app.state::<NativeDialogAutomation>().inner().clone();
-    let request = SnapshotRequest {
-        process_id: std::process::id(),
-        webview_process_id: webview_processes.browser,
-        webview_utility_process_ids: webview_processes.utilities,
-        owner_window,
-        scope_id: scope_id.to_string(),
-        min_owner_depth: args
-            .get("minOwnerDepth")
-            .and_then(|value| value.as_u64())
-            .unwrap_or(1)
-            .clamp(1, 8) as usize,
-        timeout: native_dialog_timeout(args),
+    let min_owner_depth = args
+        .get("minOwnerDepth")
+        .and_then(|value| value.as_u64())
+        .unwrap_or(1)
+        .clamp(1, 8) as usize;
+    let timeout = native_dialog_timeout(args);
+    let deadline = tokio::time::Instant::now() + timeout;
+    let mut first_attempt = true;
+
+    // The WebView2 utility process that hosts a file picker can start after the
+    // first process read, so identities are re-read before every bounded
+    // attempt. All attempts share the caller's original deadline.
+    let outcome = loop {
+        let webview_processes = native_webview_processes(&resolved.window).await;
+        let remaining = deadline.saturating_duration_since(tokio::time::Instant::now());
+        let Some(attempt_timeout) = snapshot_attempt_budget(remaining, first_attempt) else {
+            break Err(no_dialog_error(timeout));
+        };
+        first_attempt = false;
+        let request = SnapshotRequest {
+            process_id: std::process::id(),
+            webview_process_id: webview_processes.browser,
+            webview_utility_process_ids: webview_processes.utilities,
+            owner_window,
+            scope_id: scope_id.to_string(),
+            min_owner_depth,
+            timeout: attempt_timeout,
+        };
+        let worker = automation.clone();
+        match tokio::task::spawn_blocking(move || worker.snapshot(request)).await {
+            Ok(Ok(snapshot)) => break Ok(snapshot),
+            Ok(Err(error)) if is_retryable_snapshot_error(&error) => {
+                if deadline.saturating_duration_since(tokio::time::Instant::now())
+                    < MIN_SNAPSHOT_RETRY_BUDGET
+                {
+                    break Err(if error == TRAVERSAL_TIMEOUT_ERROR {
+                        error
+                    } else {
+                        no_dialog_error(timeout)
+                    });
+                }
+            }
+            Ok(Err(error)) => break Err(error),
+            Err(_) => return error_response(id, "Native dialog automation worker failed"),
+        }
     };
 
-    match tokio::task::spawn_blocking(move || automation.snapshot(request)).await {
-        Ok(Ok(snapshot)) => serde_json::json!({
+    match outcome {
+        Ok(snapshot) => serde_json::json!({
             "id": id,
             "success": true,
             "data": snapshot,
             "windowContext": context
         }),
-        Ok(Err(error)) => serde_json::json!({
+        Err(error) => serde_json::json!({
             "id": id,
             "success": false,
             "error": error,
             "windowContext": context
         }),
-        Err(_) => error_response(id, "Native dialog automation worker failed"),
     }
 }
 

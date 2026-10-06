@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+_No unreleased changes._
+
+## [0.14.3] - 2026-10-06
+
 ### Fixed
 - Native dialog snapshots now re-read the WebView2 processes between bounded attempts within the original `timeoutMs`, so `<input type="file">` pickers whose utility process starts after the first read are found.
 - `setValue` and `setPaths` now convert `/` path separators to `\` before filling Windows file-name fields, fixing multi-selection with forward-slash paths.

@@ -1,6 +1,6 @@
 {
    "name": "@hushlor/tauri-mcp-cli",
-   "version": "0.14.2",
+   "version": "0.14.3",
    "description": "CLI wrapper for calling the Tauri MCP server tools directly from the terminal",
    "type": "module",
    "main": "./dist/index.js",
@@ -46,7 +46,7 @@
       "tanstack-intent"
    ],
    "dependencies": {
-      "@hushlor/tauri-mcp-server": "0.14.2",
+      "@hushlor/tauri-mcp-server": "0.14.3",
       "commander": "14.0.2",
       "mcporter": "0.7.3"
    },

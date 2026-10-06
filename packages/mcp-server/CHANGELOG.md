@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
+## [0.14.3] - 2026-10-06
+
+### Fixed
+- Native dialog tools find `<input type="file">` pickers whose WebView2 utility process starts after the snapshot begins, and accept forward-slash paths in `setValue`/`setPaths`, when used with `tauri-plugin-hushlor-mcp-bridge` `0.14.3`.
+
 ## [0.14.2] - 2026-10-06
 
 ### Fixed

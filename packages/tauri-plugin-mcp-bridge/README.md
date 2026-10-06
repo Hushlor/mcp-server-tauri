@@ -142,7 +142,7 @@ Tools for UI automation and webview interaction via the plugin's WebSocket conne
 4. **read_logs** - Read logs (console, Android logcat, iOS, system)
 5. **webview_interact** - Perform gestures (click, double-click, long-press, swipe, scroll, focus)
 6. **webview_screenshot** - Take screenshots (JPEG default, with optional resizing)
-7. **native_dialog_snapshot** - Inspect same-process native Windows dialog ownership chains and navigation controls through UI Automation
+7. **native_dialog_snapshot** - Inspect native Windows dialogs owned by the targeted window (including WebView2 `<input type="file">` pickers) and navigation controls through UI Automation
 8. **native_dialog_interact** - Invoke, set single/multiple paths, or select native Windows dialog controls
 9. **webview_keyboard** - Type text or simulate keyboard events with optional modifiers
 10. **webview_wait_for** - Wait for element selectors, text content, or IPC events

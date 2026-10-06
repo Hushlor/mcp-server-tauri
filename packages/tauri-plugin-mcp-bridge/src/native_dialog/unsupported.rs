@@ -38,6 +38,7 @@ mod tests {
         let error = automation
             .snapshot(SnapshotRequest {
                 process_id: 1,
+                webview_process_id: None,
                 owner_window: 0,
                 scope_id: "test".to_string(),
                 min_owner_depth: 1,
@@ -50,6 +51,7 @@ mod tests {
         let error = automation
             .interact(InteractRequest {
                 process_id: 1,
+                webview_process_id: None,
                 owner_window: 0,
                 scope_id: "test".to_string(),
                 element_ref: "missing".to_string(),

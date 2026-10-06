@@ -7,7 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Fixed
+- `native_dialog_snapshot` and `native_dialog_interact` now support Windows file dialogs opened by an HTML `<input type="file">`. WebView2 creates these from its browser process, which was rejected by same-process checks. Dialogs are now authorized when their owner chain reaches the targeted window and they belong either to the Tauri process or to the WebView2 browser process reported by that window's own `ICoreWebView2::BrowserProcessId`.
 
 ## [0.14.0] - 2026-08-03
 

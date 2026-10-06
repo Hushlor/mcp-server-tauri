@@ -318,4 +318,90 @@ windowsDescribe('Native Windows dialog automation E2E', () => {
          'No native dialog owned by the targeted Tauri window'
       );
    }, TIMEOUT);
+
+   // `<input type="file">` pickers are created by the WebView2 browser process
+   // (msedgewebview2.exe), not by the Tauri host process, while still being
+   // owned by the targeted Tauri window.
+   async function openHtmlFileDialog(selector: string): Promise<Snapshot> {
+      await executeJavaScript({ script: `document.querySelector(${JSON.stringify(selector)})?.click(); return true` });
+      return JSON.parse(await snapshotNativeDialog({ timeoutMs: 8000 }));
+   }
+
+   async function readHtmlFileResult(): Promise<string> {
+      return String(await executeJavaScript({ script: 'return document.querySelector("#html-file-result")?.textContent' }));
+   }
+
+   it('discovers and accepts a WebView2 file dialog opened by an HTML input', async () => {
+      const fixtureDirectory = await mkdtemp(path.join(tmpdir(), 'tauri-mcp-html-input-')),
+            fixturePath = path.join(fixtureDirectory, 'html-fixture.txt');
+
+      try {
+         await writeFile(fixturePath, 'temporary fixture', 'utf8');
+         const snapshot = await openHtmlFileDialog('#html-file-single'),
+               valueControl = findControl(snapshot, 'setValue', [ 'fileName', 'editable' ]),
+               acceptControl = findControl(snapshot, 'invoke', [ 'accept' ]);
+
+         expect(snapshot.dialogs[0]?.kind).toBe('file');
+         await interactWithNativeDialog({
+            action: 'setValue',
+            elementRef: valueControl.elementRef,
+            value: fixturePath,
+            timeoutMs: 3000,
+         });
+         await invoke(acceptControl);
+         await waitFor({ type: 'text', value: 'HTML single file result: html-fixture.txt', timeout: 3000 });
+      } finally {
+         await rm(fixtureDirectory, { recursive: true, force: true });
+      }
+   }, TIMEOUT);
+
+   it('selects multiple files in a WebView2 dialog opened by an HTML input', async () => {
+      const fixtureDirectory = await mkdtemp(path.join(tmpdir(), 'tauri-mcp-html-multi-')),
+            firstPath = path.join(fixtureDirectory, 'first.txt'),
+            secondPath = path.join(fixtureDirectory, 'second.txt');
+
+      try {
+         await Promise.all([
+            writeFile(firstPath, 'first fixture', 'utf8'),
+            writeFile(secondPath, 'second fixture', 'utf8'),
+         ]);
+         const snapshot = await openHtmlFileDialog('#html-file-multiple'),
+               valueControl = findControl(snapshot, 'setPaths', [ 'fileName' ]),
+               acceptControl = findControl(snapshot, 'invoke', [ 'accept' ]);
+
+         await interactWithNativeDialog({
+            action: 'setPaths',
+            elementRef: valueControl.elementRef,
+            paths: [ firstPath, secondPath ],
+            timeoutMs: 3000,
+         });
+         await invoke(acceptControl);
+         await waitFor({ type: 'text', value: 'HTML multiple files result:', timeout: 3000 });
+
+         const result = await readHtmlFileResult();
+
+         expect(result).toContain('first.txt');
+         expect(result).toContain('second.txt');
+      } finally {
+         await rm(fixtureDirectory, { recursive: true, force: true });
+      }
+   }, TIMEOUT);
+
+   it('cancels a WebView2 dialog and issues fresh references when reopened', async () => {
+      const firstSnapshot = await openHtmlFileDialog('#html-file-single'),
+            firstCancel = findControl(firstSnapshot, 'invoke', [ 'cancel' ]);
+
+      await invoke(firstCancel);
+      await waitFor({ type: 'text', value: 'HTML single file result: Cancelled', timeout: 3000 });
+      await expect(invoke(firstCancel)).rejects.toThrow('Stale native dialog element reference');
+
+      const secondSnapshot = await openHtmlFileDialog('#html-file-single'),
+            secondCancel = findControl(secondSnapshot, 'invoke', [ 'cancel' ]);
+
+      expect(secondCancel.elementRef).not.toBe(firstCancel.elementRef);
+      await invoke(secondCancel);
+      await expect(snapshotNativeDialog({ timeoutMs: 500 })).rejects.toThrow(
+         'No native dialog owned by the targeted Tauri window'
+      );
+   }, TIMEOUT);
 });

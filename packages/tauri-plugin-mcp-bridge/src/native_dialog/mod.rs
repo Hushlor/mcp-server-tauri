@@ -27,13 +27,15 @@ pub const MAX_TIMEOUT: Duration = Duration::from_secs(10);
 /// A request to discover dialogs in the ownership chain of a Tauri window.
 ///
 /// `process_id` is the Tauri host process. `webview_process_id` is the WebView2
-/// browser process reported by the targeted window's own WebView2 instance;
-/// dialogs created by that process (for example by `<input type="file">`) are
-/// accepted when their owner chain reaches `owner_window`.
+/// browser process and `webview_utility_process_ids` are the utility processes
+/// reported by the targeted window's own WebView2 instance and environment.
+/// Dialogs created by those processes (for example by `<input type="file">`)
+/// are accepted when their owner chain reaches `owner_window`.
 #[derive(Debug, Clone)]
 pub struct SnapshotRequest {
     pub process_id: u32,
     pub webview_process_id: Option<u32>,
+    pub webview_utility_process_ids: Vec<u32>,
     pub owner_window: usize,
     pub scope_id: String,
     pub min_owner_depth: usize,
@@ -68,6 +70,7 @@ impl NativeDialogAction {
 pub struct InteractRequest {
     pub process_id: u32,
     pub webview_process_id: Option<u32>,
+    pub webview_utility_process_ids: Vec<u32>,
     pub owner_window: usize,
     pub scope_id: String,
     pub element_ref: String,

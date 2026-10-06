@@ -4,6 +4,11 @@
 
 _No unreleased changes._
 
+## [0.14.1] - 2026-10-06
+
+### Changed
+- Coordinated the CLI version and exact `@hushlor/tauri-mcp-server` dependency bump to `0.14.1`.
+
 ## [0.14.0] - 2026-08-03
 
 ### Changed

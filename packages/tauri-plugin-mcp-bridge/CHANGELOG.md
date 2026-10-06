@@ -9,6 +9,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
+## [0.14.1] - 2026-10-06
+
+### Fixed
+- Native Windows dialog automation now supports file pickers opened by an HTML `<input type="file">`. WebView2 creates these from its browser process, which was rejected by same-process checks. Dialogs are now authorized when their owner chain reaches the targeted window and they belong to the Tauri process or to the WebView2 browser process reported by that window's own `ICoreWebView2::BrowserProcessId`; element references are revalidated before every interaction.
+
+### Changed
+- `native_dialog::SnapshotRequest` and `native_dialog::InteractRequest` gain a public `webview_process_id: Option<u32>` field.
+
 ## [0.14.0] - 2026-08-03
 
 ### Fixed

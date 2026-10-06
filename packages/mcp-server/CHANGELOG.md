@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 _No unreleased changes._
 
+## [0.14.1] - 2026-10-06
+
+### Fixed
+- `native_dialog_snapshot` and `native_dialog_interact` now work with Windows file pickers opened by an HTML `<input type="file">` when used with `tauri-plugin-hushlor-mcp-bridge` `0.14.1`.
+
 ## [0.14.0] - 2026-08-03
 
 ### Fixed

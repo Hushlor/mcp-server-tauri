@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-_No unreleased changes._
+### Fixed
+- Native dialog snapshots now re-read the WebView2 processes between bounded attempts within the original `timeoutMs`, so `<input type="file">` pickers whose utility process starts after the first read are found.
+- `setValue` and `setPaths` now convert `/` path separators to `\` before filling Windows file-name fields, fixing multi-selection with forward-slash paths.
+
+### Security
+- WebView2 utility processes are authorized only when the operating system reports the targeted window's WebView2 browser process as their direct parent, only while that browser process is known, and only when the environment lists at most 128 processes.
 
 ## [0.14.2] - 2026-10-06
 

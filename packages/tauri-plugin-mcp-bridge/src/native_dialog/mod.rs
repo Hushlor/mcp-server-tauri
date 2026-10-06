@@ -19,7 +19,12 @@ mod windows;
 #[cfg(not(target_os = "windows"))]
 pub use unsupported::NativeDialogAutomation;
 #[cfg(target_os = "windows")]
+pub(crate) use windows::process_parent_ids;
+#[cfg(target_os = "windows")]
 pub use windows::NativeDialogAutomation;
+
+#[cfg_attr(not(target_os = "windows"), allow(unused_imports))]
+pub(crate) use authority::{verified_utility_children, MAX_WEBVIEW_PROCESS_INFOS};
 
 /// Maximum time a caller may ask the UI Automation worker to wait.
 pub const MAX_TIMEOUT: Duration = Duration::from_secs(10);
@@ -130,4 +135,107 @@ pub struct NativeDialogInteractionResult {
 
 pub(crate) fn bounded_timeout(timeout: Duration) -> Duration {
     timeout.min(MAX_TIMEOUT)
+}
+
+/// Longest single UI Automation attempt within one snapshot request. Between
+/// attempts the WebView2 process identities are read again, because the
+/// utility process that hosts an `<input type="file">` picker can start after
+/// the first read.
+pub(crate) const SNAPSHOT_ATTEMPT_SLICE: Duration = Duration::from_secs(1);
+
+/// Minimum remaining budget worth spending on another snapshot attempt.
+pub(crate) const MIN_SNAPSHOT_RETRY_BUDGET: Duration = Duration::from_millis(100);
+
+const NO_DIALOG_ERROR_PREFIX: &str =
+    "No native dialog owned by the targeted Tauri window appeared within";
+
+/// Error returned when bounded UI Automation traversal runs out of time.
+pub(crate) const TRAVERSAL_TIMEOUT_ERROR: &str =
+    "Native dialog snapshot timed out during bounded traversal";
+
+/// Error returned when no authorized dialog appears within `timeout`.
+pub(crate) fn no_dialog_error(timeout: Duration) -> String {
+    format!("{NO_DIALOG_ERROR_PREFIX} {} ms", timeout.as_millis())
+}
+
+/// Returns whether a failed snapshot attempt may succeed after re-reading the
+/// WebView2 process identities.
+pub(crate) fn is_retryable_snapshot_error(error: &str) -> bool {
+    error.starts_with(NO_DIALOG_ERROR_PREFIX) || error == TRAVERSAL_TIMEOUT_ERROR
+}
+
+/// Returns the timeout for the next snapshot attempt, or `None` when the
+/// request deadline leaves no useful budget. The first attempt always runs;
+/// later attempts need at least [`MIN_SNAPSHOT_RETRY_BUDGET`]. No attempt ever
+/// extends the caller's original deadline.
+pub(crate) fn snapshot_attempt_budget(
+    remaining: Duration,
+    first_attempt: bool,
+) -> Option<Duration> {
+    if !first_attempt && remaining < MIN_SNAPSHOT_RETRY_BUDGET {
+        return None;
+    }
+    Some(remaining.min(SNAPSHOT_ATTEMPT_SLICE))
+}
+
+/// Converts `/` separators to `\` for Windows file-name controls, which
+/// reject forward slashes in multi-selection lists.
+#[cfg_attr(not(target_os = "windows"), allow(dead_code))]
+pub(crate) fn to_windows_separators(path: &str) -> String {
+    path.replace('/', "\\")
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn snapshot_attempts_stay_within_the_original_deadline() {
+        assert_eq!(
+            snapshot_attempt_budget(Duration::from_millis(2_500), true),
+            Some(SNAPSHOT_ATTEMPT_SLICE)
+        );
+        assert_eq!(
+            snapshot_attempt_budget(Duration::from_millis(400), false),
+            Some(Duration::from_millis(400))
+        );
+        assert_eq!(
+            snapshot_attempt_budget(Duration::from_millis(99), false),
+            None
+        );
+        assert_eq!(
+            snapshot_attempt_budget(Duration::ZERO, true),
+            Some(Duration::ZERO)
+        );
+    }
+
+    #[test]
+    fn only_discovery_timeouts_are_retried() {
+        assert!(is_retryable_snapshot_error(&no_dialog_error(
+            Duration::from_millis(1_000)
+        )));
+        assert!(is_retryable_snapshot_error(TRAVERSAL_TIMEOUT_ERROR));
+        assert!(!is_retryable_snapshot_error(
+            "Native dialog automation is only supported on Windows"
+        ));
+        assert!(!is_retryable_snapshot_error(
+            "UI Automation could not access the native dialog"
+        ));
+    }
+
+    #[test]
+    fn windows_paths_use_backslash_separators() {
+        assert_eq!(
+            to_windows_separators("C:/Users/test/My File.csv"),
+            "C:\\Users\\test\\My File.csv"
+        );
+        assert_eq!(
+            to_windows_separators("C:\\already\\fine.txt"),
+            "C:\\already\\fine.txt"
+        );
+        assert_eq!(
+            to_windows_separators("\\\\server/share/a.txt"),
+            "\\\\server\\share\\a.txt"
+        );
+    }
 }
